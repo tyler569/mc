@@ -15,6 +15,7 @@ vertex_struct! {
 pub struct Mesh {
     vertices: Vec<Vertex>,
     position: cgmath::Matrix4<f32>,
+    buffer: Option<wgpu::Buffer>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -32,6 +33,7 @@ impl Mesh {
         Self {
             vertices: Vec::new(),
             position: cgmath::Matrix4::identity(),
+            buffer: None,
         }
     }
 
@@ -151,6 +153,14 @@ impl Mesh {
         }
 
         mesh
+    }
+
+    pub fn build(&mut self, device: &wgpu::Device) {
+        self.buffer = Some(device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Mesh Buffer"),
+            usage: wgpu::BufferUsages::VERTEX,
+            contents: bytemuck::cast_slice(&self.vertices),
+        }));
     }
 
     pub fn render(&self) {
