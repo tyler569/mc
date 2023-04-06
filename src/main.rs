@@ -12,6 +12,7 @@ mod vertex;
 mod texture;
 mod camera;
 mod camera_controller;
+mod network;
 
 fn main() {
     env_logger::init();

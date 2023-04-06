@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use cgmath::SquareMatrix;
+use wgpu::util::DeviceExt;
 
 use crate::vertex_struct;
 
