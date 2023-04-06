@@ -70,7 +70,8 @@ impl PacketEncoder {
     }
 
     pub fn write_varlong(&mut self, value: VarLong) {
-        value.write(&mut self.data);
+        todo!()
+        // value.write(&mut self.data);
     }
 
     pub fn write_position(&mut self, position: Position) {

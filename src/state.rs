@@ -1,6 +1,7 @@
 use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use winit::window::Window;
+use crate::texture::Texture;
 
 pub struct State {
     surface: wgpu::Surface,
@@ -11,6 +12,7 @@ pub struct State {
     window: Window,
 
     render_pipeline: wgpu::RenderPipeline,
+    texture: Texture,
 }
 
 impl State {
@@ -59,7 +61,9 @@ impl State {
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[
+                Texture::bind_group_layout(&device),
+            ],
             push_constant_ranges: &[],
         });
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -97,6 +101,8 @@ impl State {
             multiview: None,
         });
 
+        let texture = Texture::new(&device, &queue);
+
         Self {
             window,
             surface,
@@ -106,6 +112,7 @@ impl State {
             size,
 
             render_pipeline,
+            texture,
         }
     }
 
@@ -159,6 +166,7 @@ impl State {
                 depth_stencil_attachment: None,
             });
 
+            render_pass.set_bind_group(0, &self.texture.bind_group, &[]);
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.draw(0..3, 0..1);
         }

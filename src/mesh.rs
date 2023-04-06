@@ -165,6 +165,5 @@ impl Mesh {
     }
 
     pub fn render(&self) {
-        todo!()
     }
 }
