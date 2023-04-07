@@ -3,7 +3,7 @@ use uuid::Uuid;
 mod packet;
 mod varint;
 
-use varint::{VarInt, VarLong};
+pub use varint::{VarInt, VarLong};
 
 pub struct Position {
     x: u32,
@@ -11,7 +11,15 @@ pub struct Position {
     z: u32,
 }
 
-struct Slot {}
+enum Slot {
+    Nothing,
+    Item {
+        id: VarInt,
+        count: i8,
+        nbt: Option<nbt::Blob>,
+    },
+}
+
 struct Identifier(String);
 struct Chat(String);
 struct Angle(f32);

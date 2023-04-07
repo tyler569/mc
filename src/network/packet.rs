@@ -1,5 +1,5 @@
 use crate::network::varint::{VarInt, VarLong};
-use crate::network::{Angle, Chat, Identifier, Nbt};
+use crate::network::{Angle, Chat, Identifier, Nbt, Slot};
 use std::f32::consts::PI;
 use std::io::{Result, Write};
 use uuid::Uuid;
@@ -23,6 +23,12 @@ macro_rules! impl_minecraft_write {
 }
 
 impl_minecraft_write!(i8, i16, i32, i64, u8, u16, u32, u64, u128, f32, f64);
+
+impl MinecraftWrite for bool {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        writer.write(&[*self as u8])
+    }
+}
 
 impl MinecraftWrite for VarInt {
     fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
@@ -116,6 +122,33 @@ impl MinecraftWrite for Nbt {
     }
 }
 
+impl MinecraftWrite for nbt::Blob {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        let mut tmp = vec![];
+        nbt::to_writer(&mut tmp, self, None)?;
+        writer.write(&tmp)
+    }
+}
+
+impl MinecraftWrite for Slot {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        match self {
+            Self::Nothing => false.minecraft_write(writer),
+            Self::Item { id, count, nbt } => {
+                let mut size = 0;
+                size += true.minecraft_write(writer)?;
+                size += id.minecraft_write(writer)?;
+                size += count.minecraft_write(writer)?;
+                match nbt {
+                    None => size += 0u8.minecraft_write(writer)?,
+                    Some(blob) => size += blob.minecraft_write(writer)?,
+                }
+                Ok(size)
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,5 +227,22 @@ mod tests {
             vec,
             &[10, 0, 0, 8, 0, 3, 75, 101, 121, 0, 5, 86, 97, 108, 117, 101, 0]
         );
+    }
+
+    #[test]
+    fn test_write_slot() {
+        let mut vec = vec![];
+        let mut slot = Slot::Nothing;
+        slot.minecraft_write(&mut vec);
+        assert_eq!(vec, &[0]);
+
+        vec.clear();
+        slot = Slot::Item {
+            id: VarInt(1),
+            count: 1,
+            nbt: None,
+        };
+        slot.minecraft_write(&mut vec);
+        assert_eq!(vec, &[1, 1, 1, 0]);
     }
 }
