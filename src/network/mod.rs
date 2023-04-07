@@ -934,7 +934,7 @@ enum ClientBoundPlayPacket {
     EntityEffect {
         entity_id: VarInt,
         effect_id: VarInt,
-        amplifier: i6,
+        amplifier: i16,
         duration: VarInt,
         flags: i8,
     },
