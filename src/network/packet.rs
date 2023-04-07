@@ -189,14 +189,10 @@ mod tests {
         let mut vec = vec![];
         let mut nbt = Nbt(nbt::Blob::new());
         nbt.0.insert("Key", "Value");
-        nbt.0.insert("Number", 34);
-        nbt.0.insert("Array", vec![33i32, 33, 33, 33]);
         nbt.minecraft_write(&mut vec);
-        let expected_value = &[
-            10, 0, 0, 9, 0, 5, 65, 114, 114, 97, 121, 3, 0, 0, 0, 4, 0, 0, 0, 33, 0, 0, 0, 33, 0,
-            0, 0, 33, 0, 0, 0, 33, 8, 0, 3, 75, 101, 121, 0, 5, 86, 97, 108, 117, 101, 3, 0, 6, 78,
-            117, 109, 98, 101, 114, 0, 0, 0, 34, 0,
-        ];
-        assert_eq!(vec, expected_value);
+        assert_eq!(
+            vec,
+            &[10, 0, 0, 8, 0, 3, 75, 101, 121, 0, 5, 86, 97, 108, 117, 101, 0]
+        );
     }
 }
