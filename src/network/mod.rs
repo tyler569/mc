@@ -24,6 +24,25 @@ enum Either<T, U> {
     Right(U),
 }
 
+struct EntityMetadata {
+    // complicated.
+}
+
+struct EntityProperty {
+    key: Identifier,
+    value: f64,
+    modifier_count: VarInt,
+    modifiers: Vec<()>, // TODO
+}
+
+struct Recipe {
+    // complicated
+}
+
+struct Tag {
+    // complicated
+}
+
 enum BossBarAction {
     Add {
         title: String,
@@ -619,7 +638,7 @@ enum ClientBoundPlayPacket {
         data: Option<Vec<u8>>,
     },
     TradeList {
-        // INCOMPLETE
+        // TODO
     },
     EntityPosition {
         entity_id: VarInt,
@@ -682,7 +701,7 @@ enum ClientBoundPlayPacket {
         message: String,
     },
     PlayerInfo {
-        // INCOMPLETE
+        // TODO
     },
     Face {
         feet_eyes: VarInt, // enum
@@ -692,11 +711,239 @@ enum ClientBoundPlayPacket {
         entity_id: Option<VarInt>,
         entity_feet_eyes: Option<VarInt>, // enum
     },
-    PlayerPositionAndLook {}, // UNFINISHED
-}
-
-impl ServerBoundHandshakePacket {
-    fn encode(&self, stream: &mut Vec<u8>) {
-
+    PlayerPositionAndLook {
+        x: f64,
+        y: f64,
+        z: f64,
+        yaw: f32,
+        pitch: f32,
+        flags: i8,
+        teleport_id: VarInt,
+        dismount_vehicle: bool,
+    },
+    UnlockRecipes {
+        action: VarInt,
+        crafting_recipe_book_open: bool,
+        crafting_recipe_book_filter_active: bool,
+        smelting_recipe_book_open: bool,
+        smelting_recipe_book_filter_active: bool,
+        blast_furnace_recipe_book_open: bool,
+        blast_furnace_recipe_book_filter_active: bool,
+        smoker_recipe_book_open: bool,
+        smoker_recipe_book_filter_active: bool,
+        recipe_ids: Vec<VarInt>,
+        recipe_ids_init: Vec<VarInt>, // only if action == 0
+    },
+    DestroyEntities {
+        entity_ids: Vec<VarInt>,
+    },
+    RemoveEntityEffect {
+        entity_id: VarInt,
+        effect_id: VarInt,
+    },
+    ResourcePackSend {
+        url: String,
+        hash: String,
+        forced: bool,
+        has_prompt_message: bool,
+        prompt_message: Option<String>,
+    },
+    Respawn {
+        dimension: Nbt,
+        dimension_name: Identifier,
+        hashed_seed: i64,
+        gamemode: u8,
+        previous_gamemode: u8,
+        is_debug: bool,
+        is_flag: bool,
+        copy_metadata: bool,
+    },
+    EntityHeadLook {
+        entity_id: VarInt,
+        head_yaw: Angle,
+    },
+    MultiBlockChange {
+        chunk_section_position: i64,
+        trust_light_edges: bool, // always inverse of previous UpdateLight packet
+        blocks_array_size: VarInt,
+        blocks: Vec<VarLong>,
+    },
+    SelectAdvancement {
+        has_id: bool,
+        identifier: Option<Identifier>,
+    },
+    ActionBar {
+        action_bar_text: String,
+    },
+    WorldBorderCenter {
+        x: f64,
+        z: f64,
+    },
+    WorldBorderLerpSize {
+        old_diameter: f64,
+        new_diameter: f64,
+        speed: VarLong,
+    },
+    WorldBorderSize {
+        diameter: f64,
+    },
+    WorldBorderWarningDelay {
+        warning_time: VarInt,
+    },
+    WorldBorderWarningReach {
+        warning_blocks: VarInt,
+    },
+    Camera {
+        camera_entity_id: VarInt,
+    },
+    HeldItemChange {
+        slot: i8,
+    },
+    UpdateViewPosition {
+        chunk_x: VarInt,
+        chunk_z: VarInt,
+    },
+    UpdateViewDistance {
+        view_distance: VarInt,
+    },
+    SpawnPosition {
+        location: Position,
+        angle: f32,
+    },
+    DisplayScoreboard {
+        position: i8,
+        score_name: String,
+    },
+    EntityMetadata {
+        entity_id: VarInt,
+        metadata: EntityMetadata,
+    },
+    AttachEntity {
+        attached_entity_id: i32,
+        holding_entity_id: i32,
+    },
+    EntityVelocity {
+        entity_id: VarInt,
+        velocity_x: i16,
+        velocity_y: i16,
+        velocity_z: i16,
+    },
+    EntityEquipment {
+        entity_id: VarInt,
+        equipment: Vec<(i8, Slot)>,
+    },
+    SetExperience {
+        experience_bar: f32,
+        level: VarInt,
+        total_experience: VarInt,
+    },
+    UpdateHealth {
+        health: f32,
+        food: VarInt,
+        food_saturation: f32,
+    },
+    ScoreboardObjective {
+        objective_name: String,
+        mode: i8,
+        objective_value: Option<String>, // rest only if mode is 0 or 2
+        objective_type: Option<VarInt>,
+    },
+    SetPassengers {
+        entity_id: VarInt,
+        passenger_count: VarInt,
+        passengers: Vec<VarInt>,
+    },
+    Teams {
+        // TODO
+    },
+    UpdateScore {
+        entity_name: String,
+        action: VarInt,
+        objective_name: String,
+        value: Option<VarInt>, // if action != 1
+    },
+    UpdateSimulationDistance {
+        simulation_distance: VarInt,
+    },
+    SetTitleSubTitle {
+        subtitle_text: String,
+    },
+    TimeUpdate {
+        world_age: i64,
+        time_of_day: i64,
+    },
+    SetTitleText {
+        title_text: String,
+    },
+    SetTitleTimes {
+        fade_in: i32,
+        stay: i32,
+        fade_out: i32,
+    },
+    EntitySoundEffect {
+        sound_id: VarInt,
+        sound_category: VarInt,
+        entity_id: VarInt,
+        volume: f32,
+        pitch: f32,
+    },
+    SoundEffect {
+        sound_id: VarInt,
+        sound_category: VarInt,
+        effect_position_x: i32,
+        effect_position_y: i32,
+        effect_position_z: i32,
+        volume: f32,
+        piitch: f32,
+    },
+    StopSound {
+        flags: u8,
+        source: Option<VarInt>, // only if flags is 1 or 3 (& 0x01)
+        sound: Option<Identifier>, // only if flags is 2 or 3 (& 0x02)
+    },
+    PlayListHeaderAndFooter {
+        header: String,
+        footer: String,
+    },
+    NbtQueryResponse {
+        transaction_id: VarInt,
+        nbt: Nbt,
+    },
+    CollectItem {
+        collected_entity_id: VarInt,
+        collector_entity_id: VarInt,
+        pickup_item_count: VarInt,
+    },
+    EntityTeleport {
+        entity_id: VarInt,
+        x: f64,
+        y: f64,
+        z: f64,
+        yaw: Angle,
+        pitch: Angle,
+        on_ground: bool,
+    },
+    Advancements {
+        // TODO
+    },
+    EntityProperties {
+        entity_id: VarInt,
+        property_count: VarInt,
+        properties: Vec<EntityProperty>,
+    },
+    EntityEffect {
+        entity_id: VarInt,
+        effect_id: VarInt,
+        amplifier: i6,
+        duration: VarInt,
+        flags: i8,
+    },
+    DeclareRecipes {
+        recipe_count: VarInt,
+        recipes: Vec<Recipe>,
+    },
+    Tags {
+        tag_count: VarInt,
+        tags: Vec<Tag>,
     }
 }
