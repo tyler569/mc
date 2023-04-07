@@ -37,8 +37,12 @@ pub trait VertexLayout {
 
 #[macro_export]
 macro_rules! default {
-    (, $default:expr) => { $default };
-    ($option:expr, $default:expr) => { $option };
+    (, $default:expr) => {
+        $default
+    };
+    ($option:expr, $default:expr) => {
+        $option
+    };
 }
 
 #[macro_export]
@@ -72,7 +76,7 @@ macro_rules! vertex_struct {
                     let mut offset = 0;
                     let mut location = crate::default!($($location)?, 0);
                     let mut attributes = vec![];
-                    
+
                     $(
                         attributes.push(wgpu::VertexAttribute {
                             offset: offset as wgpu::BufferAddress,

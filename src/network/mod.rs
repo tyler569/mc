@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
-mod varint;
 mod packet;
+mod varint;
 
 use varint::{VarInt, VarLong};
 
@@ -15,7 +15,7 @@ struct Slot {}
 struct Identifier(String);
 struct Chat(String);
 struct Angle(f32);
-struct Nbt {}
+struct Nbt(nbt::Blob);
 struct BitSet {}
 struct CommandNode {}
 struct Statistic {}
@@ -78,9 +78,7 @@ enum ServerBoundHandshakePacket {
 
 enum ServerBoundStatusPacket {
     Request {},
-    Ping {
-        payload: i64,
-    },
+    Ping { payload: i64 },
 }
 
 enum ServerBoundLoginPacket {
@@ -262,7 +260,7 @@ enum ServerBoundPlayPacket {
         selected_slot: VarInt,
     },
     SetBeaconEffect {
-        primary_effect: VarInt, // potion ID
+        primary_effect: VarInt,   // potion ID
         secondary_effect: VarInt, // potion ID
     },
     HeldItemChange {
@@ -294,7 +292,7 @@ enum ServerBoundPlayPacket {
     UpdateStructureBlock {
         location: Position,
         action: VarInt, // enum
-        mode: VarInt, // enum
+        mode: VarInt,   // enum
         name: String,
         offset_x: i8,
         offset_y: i8,
@@ -302,7 +300,7 @@ enum ServerBoundPlayPacket {
         size_x: i8,
         size_y: i8,
         size_z: i8,
-        mirror: VarInt, // enum
+        mirror: VarInt,   // enum
         rotation: VarInt, // enum
         metadata: String,
         integrity: f32,
@@ -337,12 +335,8 @@ enum ServerBoundPlayPacket {
 enum ClientBoundHandshakePacket {}
 
 enum ClientBoundStatusPacket {
-    Response {
-        json_data: String,
-    },
-    Pong {
-        payload: i64,
-    },
+    Response { json_data: String },
+    Pong { payload: i64 },
 }
 
 enum ClientBoundLoginPacket {
@@ -592,7 +586,7 @@ enum ClientBoundPlayPacket {
         offset_z: f32,
         particle_data: f32,
         particle_count: i32,
-        data: ()
+        data: (),
     },
     UpdateLight {
         chunk_x: VarInt,
@@ -898,7 +892,7 @@ enum ClientBoundPlayPacket {
     },
     StopSound {
         flags: u8,
-        source: Option<VarInt>, // only if flags is 1 or 3 (& 0x01)
+        source: Option<VarInt>,    // only if flags is 1 or 3 (& 0x01)
         sound: Option<Identifier>, // only if flags is 2 or 3 (& 0x02)
     },
     PlayListHeaderAndFooter {
@@ -945,5 +939,5 @@ enum ClientBoundPlayPacket {
     Tags {
         tag_count: VarInt,
         tags: Vec<Tag>,
-    }
+    },
 }

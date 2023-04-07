@@ -1,6 +1,9 @@
-use cgmath::Rotation3;
-use winit::{event::{WindowEvent, KeyboardInput, ElementState, VirtualKeyCode}, dpi::PhysicalPosition};
 use crate::camera::Camera;
+use cgmath::Rotation3;
+use winit::{
+    dpi::PhysicalPosition,
+    event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent},
+};
 
 #[derive(Debug, Default)]
 pub struct CameraController {
@@ -28,11 +31,12 @@ impl CameraController {
     pub fn process_events(&mut self, event: &WindowEvent) -> bool {
         match event {
             WindowEvent::KeyboardInput {
-                input: KeyboardInput {
-                    state,
-                    virtual_keycode: Some(keycode),
-                    ..
-                },
+                input:
+                    KeyboardInput {
+                        state,
+                        virtual_keycode: Some(keycode),
+                        ..
+                    },
                 ..
             } => {
                 let is_pressed = *state == ElementState::Pressed;
@@ -68,18 +72,12 @@ impl CameraController {
                     _ => false,
                 }
             }
-            WindowEvent::MouseInput {
-                state,
-                ..
-            } => {
+            WindowEvent::MouseInput { state, .. } => {
                 let is_pressed = *state == ElementState::Pressed;
                 self.is_mouse_pressed = is_pressed;
                 true
             }
-            WindowEvent::CursorMoved {
-                position,
-                ..
-            } => {
+            WindowEvent::CursorMoved { position, .. } => {
                 if self.is_mouse_pressed {
                     if let Some(old_position) = self.last_mouse_position {
                         self.queued_mouse_diff.0 += (position.x - old_position.x) as f32;
@@ -107,8 +105,10 @@ impl CameraController {
             *camera = Camera::new();
         }
 
-        let camera_rotation_x = cgmath::Quaternion::from_angle_x(cgmath::Rad(self.queued_mouse_diff.1 / 500.));
-        let camera_rotation_y = cgmath::Quaternion::from_angle_y(cgmath::Rad(self.queued_mouse_diff.0 / 500.));
+        let camera_rotation_x =
+            cgmath::Quaternion::from_angle_x(cgmath::Rad(self.queued_mouse_diff.1 / 500.));
+        let camera_rotation_y =
+            cgmath::Quaternion::from_angle_y(cgmath::Rad(self.queued_mouse_diff.0 / 500.));
 
         let new_facing = camera_rotation_x * camera_rotation_y * camera.dir;
         camera.dir = new_facing.normalize();

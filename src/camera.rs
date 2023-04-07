@@ -25,7 +25,10 @@ impl Camera {
         }
     }
 
-    pub fn build_view_projection_matrix(&self, config: &SurfaceConfiguration) -> cgmath::Matrix4<f32> {
+    pub fn build_view_projection_matrix(
+        &self,
+        config: &SurfaceConfiguration,
+    ) -> cgmath::Matrix4<f32> {
         let aspect = config.width as f32 / config.height as f32;
 
         let view = cgmath::Matrix4::look_to_rh(self.eye, self.dir, self.up);

@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use cgmath::SquareMatrix;
+use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 
 use crate::vertex_struct;
@@ -39,12 +39,24 @@ impl Mesh {
     }
 
     const FACE_OFFSETS: [[f32; 18]; 6] = [
-        [0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 1., 0., 1., 1., 0., 1., 0., 0.], // Front
-        [1., 0., 0., 1., 1., 0., 1., 0., 1., 1., 1., 0., 1., 1., 1., 1., 0., 1.], // Right
-        [1., 0., 1., 1., 1., 1., 0., 0., 1., 1., 1., 1., 0., 1., 1., 0., 0., 1.], // Back
-        [0., 0., 1., 0., 1., 1., 0., 0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0.], // Left
-        [0., 1., 0., 0., 1., 1., 1., 1., 0., 0., 1., 1., 1., 1., 1., 1., 1., 0.], // Top
-        [0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 1., 1., 0., 0., 1., 0., 1.], // Bottom
+        [
+            0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 1., 0., 1., 1., 0., 1., 0., 0.,
+        ], // Front
+        [
+            1., 0., 0., 1., 1., 0., 1., 0., 1., 1., 1., 0., 1., 1., 1., 1., 0., 1.,
+        ], // Right
+        [
+            1., 0., 1., 1., 1., 1., 0., 0., 1., 1., 1., 1., 0., 1., 1., 0., 0., 1.,
+        ], // Back
+        [
+            0., 0., 1., 0., 1., 1., 0., 0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0.,
+        ], // Left
+        [
+            0., 1., 0., 0., 1., 1., 1., 1., 0., 0., 1., 1., 1., 1., 1., 1., 1., 0.,
+        ], // Top
+        [
+            0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 1., 1., 0., 0., 1., 0., 1.,
+        ], // Bottom
     ];
 
     const UV_OFFSETS: [[f32; 12]; 6] = [
@@ -131,22 +143,22 @@ impl Mesh {
                 for z in 0..16 {
                     let block = chunk[&(x, y, z)];
 
-                    if block != 0 && (x - 1 < 0 || chunk[&(x-1, y, z)] == 0) {
+                    if block != 0 && (x - 1 < 0 || chunk[&(x - 1, y, z)] == 0) {
                         mesh.emit_face(Face::West, to_f(x, y, z), block)
                     }
-                    if block != 0 && (x + 1 > 15 || chunk[&(x+1, y, z)] == 0) {
+                    if block != 0 && (x + 1 > 15 || chunk[&(x + 1, y, z)] == 0) {
                         mesh.emit_face(Face::East, to_f(x, y, z), block)
                     }
-                    if block != 0 && (z - 1 < 0 || chunk[&(x, y, z-1)] == 0) {
+                    if block != 0 && (z - 1 < 0 || chunk[&(x, y, z - 1)] == 0) {
                         mesh.emit_face(Face::South, to_f(x, y, z), block)
                     }
-                    if block != 0 && (z + 1 > 15 || chunk[&(x, y, z+1)] == 0) {
+                    if block != 0 && (z + 1 > 15 || chunk[&(x, y, z + 1)] == 0) {
                         mesh.emit_face(Face::North, to_f(x, y, z), block)
                     }
-                    if block != 0 && (y - 1 < 0 || chunk[&(x, y-1, z)] == 0) {
+                    if block != 0 && (y - 1 < 0 || chunk[&(x, y - 1, z)] == 0) {
                         mesh.emit_face(Face::Down, to_f(x, y, z), block)
                     }
-                    if block != 0 && (y + 1 > 15 || chunk[&(x, y+1, z)] == 0) {
+                    if block != 0 && (y + 1 > 15 || chunk[&(x, y + 1, z)] == 0) {
                         mesh.emit_face(Face::Up, to_f(x, y, z), block)
                     }
                 }
@@ -157,13 +169,14 @@ impl Mesh {
     }
 
     pub fn build(&mut self, device: &wgpu::Device) {
-        self.buffer = Some(device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Mesh Buffer"),
-            usage: wgpu::BufferUsages::VERTEX,
-            contents: bytemuck::cast_slice(&self.vertices),
-        }));
+        self.buffer = Some(
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Mesh Buffer"),
+                usage: wgpu::BufferUsages::VERTEX,
+                contents: bytemuck::cast_slice(&self.vertices),
+            }),
+        );
     }
 
-    pub fn render(&self) {
-    }
+    pub fn render(&self) {}
 }

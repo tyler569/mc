@@ -1,8 +1,8 @@
+use crate::network::varint::{VarInt, VarLong};
+use crate::network::{Angle, Chat, Identifier, Nbt};
 use std::f32::consts::PI;
 use std::io::{Result, Write};
 use uuid::Uuid;
-use crate::network::{Angle, Chat, Identifier};
-use crate::network::varint::{VarInt, VarLong};
 
 use super::Position;
 
@@ -47,9 +47,9 @@ impl MinecraftWrite for &str {
 
 impl MinecraftWrite for Position {
     fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
-        let value: u64 = ((self.x & 0x3FFFFFF) as u64) << 38 |
-            ((self.z & 0x3FFFFFF) as u64) << 12 |
-            (self.y & 0xFFF) as u64;
+        let value: u64 = ((self.x & 0x3FFFFFF) as u64) << 38
+            | ((self.z & 0x3FFFFFF) as u64) << 12
+            | (self.y & 0xFFF) as u64;
         value.minecraft_write(writer)
     }
 }
@@ -107,10 +107,19 @@ impl MinecraftWrite for Uuid {
     }
 }
 
+// Possibility: replace Nbt with nbt::Blob and impl this on that.
+impl MinecraftWrite for Nbt {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        let mut tmp = vec![];
+        nbt::to_writer(&mut tmp, &self.0, None)?;
+        writer.write(&tmp)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::network::Angle;
     use super::*;
+    use crate::network::Angle;
 
     #[test]
     fn test_write_u64() {
@@ -169,6 +178,25 @@ mod tests {
         let uuid = Uuid::new_v5(&Uuid::NAMESPACE_DNS, b"testing");
         // 013fad7b-475f-55b4-b2b7-0da6c41293a8
         uuid.minecraft_write(&mut vec);
-        assert_eq!(vec, &[1, 63, 173, 123, 71, 95, 85, 180, 178, 183, 13, 166, 196, 18, 147, 168]);
+        assert_eq!(
+            vec,
+            &[1, 63, 173, 123, 71, 95, 85, 180, 178, 183, 13, 166, 196, 18, 147, 168]
+        );
+    }
+
+    #[test]
+    fn test_write_simple_nbt() {
+        let mut vec = vec![];
+        let mut nbt = Nbt(nbt::Blob::new());
+        nbt.0.insert("Key", "Value");
+        nbt.0.insert("Number", 34);
+        nbt.0.insert("Array", vec![33i32, 33, 33, 33]);
+        nbt.minecraft_write(&mut vec);
+        let expected_value = &[
+            10, 0, 0, 9, 0, 5, 65, 114, 114, 97, 121, 3, 0, 0, 0, 4, 0, 0, 0, 33, 0, 0, 0, 33, 0,
+            0, 0, 33, 0, 0, 0, 33, 8, 0, 3, 75, 101, 121, 0, 5, 86, 97, 108, 117, 101, 3, 0, 6, 78,
+            117, 109, 98, 101, 114, 0, 0, 0, 34, 0,
+        ];
+        assert_eq!(vec, expected_value);
     }
 }

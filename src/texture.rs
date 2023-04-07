@@ -1,6 +1,6 @@
-use std::iter::Once;
 use image::GenericImageView;
 use once_cell::sync::OnceCell;
+use std::iter::Once;
 
 pub struct Texture {
     pub texture: wgpu::Texture,
@@ -22,7 +22,7 @@ impl Texture {
                         ty: wgpu::BindingType::Texture {
                             multisampled: false,
                             view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true, },
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
                         },
                         count: None,
                     },
@@ -31,7 +31,7 @@ impl Texture {
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
-                    }
+                    },
                 ],
                 label: Some("texture_bind_group_layout"),
             })
@@ -101,7 +101,7 @@ impl Texture {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Sampler(&sampler),
-                }
+                },
             ],
             label: Some("bind_group"),
         });
