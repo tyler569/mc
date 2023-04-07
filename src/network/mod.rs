@@ -14,7 +14,7 @@ pub struct Position {
 struct Slot {}
 struct Identifier(String);
 struct Chat(String);
-struct Angle(i8);
+struct Angle(f32);
 struct Nbt {}
 struct BitSet {}
 struct CommandNode {}

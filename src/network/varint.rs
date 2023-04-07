@@ -4,13 +4,9 @@ const SEGMENT_BITS: u32 = 0x7f;
 const CONTINUE_BIT: u8 = 0x80;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct VarInt(i32);
+pub struct VarInt(pub i32);
 
 impl VarInt {
-    pub fn get(self) -> i32 {
-        self.0
-    }
-
     pub fn write(self, writer: &mut dyn Write) -> Result<usize> {
         let mut buffer = [0u8; 6];
         let mut index = 0;
@@ -85,13 +81,9 @@ mod tests {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct VarLong(i64);
+pub struct VarLong(pub i64);
 
 impl VarLong {
-    pub fn get(self) -> i64 {
-        self.0
-    }
-
     pub fn write(self, writer: &mut dyn Write) -> std::io::Result<usize> {
         let mut buffer = [0u8; 10];
         let mut index = 0;

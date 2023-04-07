@@ -1,4 +1,7 @@
+use std::f32::consts::PI;
 use std::io::{Result, Write};
+use uuid::Uuid;
+use crate::network::{Angle, Chat, Identifier};
 use crate::network::varint::{VarInt, VarLong};
 
 use super::Position;
@@ -19,7 +22,7 @@ macro_rules! impl_minecraft_write {
     };
 }
 
-impl_minecraft_write!(i8, i16, i32, i64, u8, u16, u32, u64, f32, f64);
+impl_minecraft_write!(i8, i16, i32, i64, u8, u16, u32, u64, u128, f32, f64);
 
 impl MinecraftWrite for VarInt {
     fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
@@ -30,5 +33,142 @@ impl MinecraftWrite for VarInt {
 impl MinecraftWrite for VarLong {
     fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
         self.write(writer)
+    }
+}
+
+impl MinecraftWrite for &str {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        let len = self.len() as i32;
+        let mut size = VarInt(len).minecraft_write(writer)?;
+        size += writer.write(self.as_bytes())?;
+        Ok(size)
+    }
+}
+
+impl MinecraftWrite for Position {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        let value: u64 = ((self.x & 0x3FFFFFF) as u64) << 38 |
+            ((self.z & 0x3FFFFFF) as u64) << 12 |
+            (self.y & 0xFFF) as u64;
+        value.minecraft_write(writer)
+    }
+}
+
+// Can't do this because it conflicts with &[T], but I can always just .write(&[u8]).
+//
+// impl MinecraftWrite for &[u8] {
+//     fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+//         writer.write(self)
+//     }
+// }
+
+impl<T: MinecraftWrite> MinecraftWrite for &[T] {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        let mut size = 0;
+        for v in *self {
+            size += v.minecraft_write(writer)?;
+        }
+        Ok(size)
+    }
+}
+
+impl<T: MinecraftWrite> MinecraftWrite for Option<T> {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        if self.is_some() {
+            self.as_ref().unwrap().minecraft_write(writer)
+        } else {
+            Ok(0)
+        }
+    }
+}
+
+impl MinecraftWrite for Chat {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        self.0.as_str().minecraft_write(writer)
+    }
+}
+
+impl MinecraftWrite for Identifier {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        self.0.as_str().minecraft_write(writer)
+    }
+}
+
+impl MinecraftWrite for Angle {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        let protocol_angle: u8 = (self.0 / (2. * PI) * 256.) as u8;
+        protocol_angle.minecraft_write(writer)
+    }
+}
+
+impl MinecraftWrite for Uuid {
+    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+        self.as_u128().minecraft_write(writer)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::network::Angle;
+    use super::*;
+
+    #[test]
+    fn test_write_u64() {
+        let mut vec = vec![];
+        64u64.minecraft_write(&mut vec);
+        assert_eq!(vec, &[0, 0, 0, 0, 0, 0, 0, 64]);
+    }
+
+    #[test]
+    fn test_write_string() {
+        let mut vec = vec![];
+        "Hello World".minecraft_write(&mut vec);
+        assert_eq!(vec, b"\x0bHello World");
+    }
+
+    #[test]
+    fn test_write_position() {
+        let mut vec = vec![];
+        let position = Position { x: 1, y: 1, z: 1 };
+        position.minecraft_write(&mut vec);
+        assert_eq!(vec, &[0, 0, 0, 64, 0, 0, 16, 1]);
+    }
+
+    #[test]
+    fn test_write_array() {
+        let mut vec = vec![];
+        let numbers: &[u16] = &[2u16, 3u16, 4u16, 5u16];
+        numbers.minecraft_write(&mut vec);
+        assert_eq!(vec, &[0, 2, 0, 3, 0, 4, 0, 5]);
+    }
+
+    #[test]
+    fn test_write_optional() {
+        let mut vec = vec![];
+        let mut maybe = Some(3i32);
+        maybe.minecraft_write(&mut vec);
+        assert_eq!(vec, &[0, 0, 0, 3]);
+
+        vec.clear();
+        maybe = None;
+        maybe.minecraft_write(&mut vec);
+        assert!(vec.is_empty());
+    }
+
+    #[test]
+    fn test_write_angle() {
+        let mut vec = vec![];
+        let angle = Angle(PI);
+        angle.minecraft_write(&mut vec);
+        assert_eq!(vec, &[128]);
+    }
+
+    #[test]
+    fn test_write_uuid() {
+        let mut vec = vec![];
+        let uuid = Uuid::new_v5(&Uuid::NAMESPACE_DNS, b"testing");
+        // 013fad7b-475f-55b4-b2b7-0da6c41293a8
+        uuid.minecraft_write(&mut vec);
+        assert_eq!(vec, &[1, 63, 173, 123, 71, 95, 85, 180, 178, 183, 13, 166, 196, 18, 147, 168]);
     }
 }
