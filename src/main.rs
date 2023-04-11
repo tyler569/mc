@@ -7,11 +7,11 @@ use winit::{
 };
 
 mod camera;
-mod camera_controller;
 mod mesh;
 mod network;
 mod state;
 mod texture;
+mod uniform;
 mod vertex;
 
 fn main() {

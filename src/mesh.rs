@@ -5,11 +5,11 @@ use wgpu::util::DeviceExt;
 use crate::vertex_struct;
 
 vertex_struct! {
-    struct Vertex {
+    pub struct Vertex {
         position: [f32; 3],
         normal: [f32; 3],
         uv: [f32; 2],
-        texture_index: u32,
+        texture_index: f32,
     }
 }
 
@@ -87,7 +87,7 @@ impl Mesh {
                 position: [position.0 + o[0], position.1 + o[1], position.2 + o[2]],
                 uv: [u[0], u[1]],
                 normal: *normal,
-                texture_index,
+                texture_index: texture_index as f32,
             })
         }
     }
@@ -136,29 +136,30 @@ impl Mesh {
         chunk.insert((4, 8, 4), 10);
         chunk.insert((4, 9, 4), 10);
 
-        let to_f = |x, y, z| (x as f32, y as f32, z as f32);
+        let to_f = |x: i32, y: i32, z: i32| (x as f32, y as f32, z as f32);
+        let mut get = |x: i32, y: i32, z: i32| *chunk.entry((x, y, z)).or_default();
 
         for x in 0..16 {
             for y in 0..16 {
                 for z in 0..16 {
-                    let block = chunk[&(x, y, z)];
+                    let block = get(x, y, z);
 
-                    if block != 0 && (x - 1 < 0 || chunk[&(x - 1, y, z)] == 0) {
+                    if block != 0 && (x - 1 < 0 || get(x - 1, y, z) == 0) {
                         mesh.emit_face(Face::West, to_f(x, y, z), block)
                     }
-                    if block != 0 && (x + 1 > 15 || chunk[&(x + 1, y, z)] == 0) {
+                    if block != 0 && (x + 1 > 15 || get(x + 1, y, z) == 0) {
                         mesh.emit_face(Face::East, to_f(x, y, z), block)
                     }
-                    if block != 0 && (z - 1 < 0 || chunk[&(x, y, z - 1)] == 0) {
+                    if block != 0 && (z - 1 < 0 || get(x, y, z - 1) == 0) {
                         mesh.emit_face(Face::South, to_f(x, y, z), block)
                     }
-                    if block != 0 && (z + 1 > 15 || chunk[&(x, y, z + 1)] == 0) {
+                    if block != 0 && (z + 1 > 15 || get(x, y, z + 1) == 0) {
                         mesh.emit_face(Face::North, to_f(x, y, z), block)
                     }
-                    if block != 0 && (y - 1 < 0 || chunk[&(x, y - 1, z)] == 0) {
+                    if block != 0 && (y - 1 < 0 || get(x, y - 1, z) == 0) {
                         mesh.emit_face(Face::Down, to_f(x, y, z), block)
                     }
-                    if block != 0 && (y + 1 > 15 || chunk[&(x, y + 1, z)] == 0) {
+                    if block != 0 && (y + 1 > 15 || get(x, y + 1, z) == 0) {
                         mesh.emit_face(Face::Up, to_f(x, y, z), block)
                     }
                 }
@@ -177,6 +178,21 @@ impl Mesh {
             }),
         );
     }
+}
 
-    pub fn render(&self) {}
+pub trait DrawMesh<'mesh> {
+    fn draw_mesh(&mut self, mesh: &'mesh Mesh);
+}
+
+impl<'render_pass, 'mesh> DrawMesh<'mesh> for wgpu::RenderPass<'render_pass>
+where
+    'mesh: 'render_pass,
+{
+    fn draw_mesh(&mut self, mesh: &'mesh Mesh) {
+        let count = mesh.vertices.len() as u32;
+        if let Some(ref buffer) = mesh.buffer {
+            self.set_vertex_buffer(0, buffer.slice(..));
+            self.draw(0..count, 0..1);
+        }
+    }
 }

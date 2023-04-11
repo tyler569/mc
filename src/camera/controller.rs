@@ -1,4 +1,5 @@
-use crate::camera::Camera;
+use super::Camera;
+use crate::camera::CameraView;
 use cgmath::Rotation3;
 use winit::{
     dpi::PhysicalPosition,
@@ -92,7 +93,7 @@ impl CameraController {
         }
     }
 
-    pub fn update_camera(&mut self, camera: &mut Camera) {
+    pub(super) fn update_camera(&mut self, camera: &mut CameraView) {
         let speed = self.speed * 0.1;
 
         use cgmath::InnerSpace;
@@ -102,7 +103,7 @@ impl CameraController {
         let right_norm = forward_norm.cross(camera.up).normalize();
 
         if self.reset {
-            *camera = Camera::new();
+            // reset the camera
         }
 
         let camera_rotation_x =

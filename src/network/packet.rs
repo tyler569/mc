@@ -6,15 +6,15 @@ use uuid::Uuid;
 
 use super::Position;
 
-trait MinecraftWrite {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize>;
+pub trait MinecraftWrite {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize>;
 }
 
 macro_rules! impl_minecraft_write {
     ($($typ:ty),*) => {
         $(
             impl MinecraftWrite for $typ {
-                fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+                fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
                     writer.write(&self.to_be_bytes())
                 }
             }
@@ -25,25 +25,31 @@ macro_rules! impl_minecraft_write {
 impl_minecraft_write!(i8, i16, i32, i64, u8, u16, u32, u64, u128, f32, f64);
 
 impl MinecraftWrite for bool {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         writer.write(&[*self as u8])
     }
 }
 
 impl MinecraftWrite for VarInt {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.write(writer)
     }
 }
 
 impl MinecraftWrite for VarLong {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.write(writer)
     }
 }
 
+impl MinecraftWrite for String {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
+        self.as_str().minecraft_write(writer)
+    }
+}
+
 impl MinecraftWrite for &str {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let len = self.len() as i32;
         let mut size = VarInt(len).minecraft_write(writer)?;
         size += writer.write(self.as_bytes())?;
@@ -52,7 +58,7 @@ impl MinecraftWrite for &str {
 }
 
 impl MinecraftWrite for Position {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let value: u64 = ((self.x & 0x3FFFFFF) as u64) << 38
             | ((self.z & 0x3FFFFFF) as u64) << 12
             | (self.y & 0xFFF) as u64;
@@ -63,13 +69,13 @@ impl MinecraftWrite for Position {
 // Can't do this because it conflicts with &[T], but I can always just .write(&[u8]).
 //
 // impl MinecraftWrite for &[u8] {
-//     fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+//     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
 //         writer.write(self)
 //     }
 // }
 
 impl<T: MinecraftWrite> MinecraftWrite for &[T] {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let mut size = 0;
         for v in *self {
             size += v.minecraft_write(writer)?;
@@ -79,7 +85,7 @@ impl<T: MinecraftWrite> MinecraftWrite for &[T] {
 }
 
 impl<T: MinecraftWrite> MinecraftWrite for Option<T> {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         if self.is_some() {
             self.as_ref().unwrap().minecraft_write(writer)
         } else {
@@ -89,33 +95,33 @@ impl<T: MinecraftWrite> MinecraftWrite for Option<T> {
 }
 
 impl MinecraftWrite for Chat {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.0.as_str().minecraft_write(writer)
     }
 }
 
 impl MinecraftWrite for Identifier {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.0.as_str().minecraft_write(writer)
     }
 }
 
 impl MinecraftWrite for Angle {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let protocol_angle: u8 = (self.0 / (2. * PI) * 256.) as u8;
         protocol_angle.minecraft_write(writer)
     }
 }
 
 impl MinecraftWrite for Uuid {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.as_u128().minecraft_write(writer)
     }
 }
 
 // Possibility: replace Nbt with nbt::Blob and impl this on that.
 impl MinecraftWrite for Nbt {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let mut tmp = vec![];
         nbt::to_writer(&mut tmp, &self.0, None)?;
         writer.write(&tmp)
@@ -123,7 +129,7 @@ impl MinecraftWrite for Nbt {
 }
 
 impl MinecraftWrite for nbt::Blob {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let mut tmp = vec![];
         nbt::to_writer(&mut tmp, self, None)?;
         writer.write(&tmp)
@@ -131,7 +137,7 @@ impl MinecraftWrite for nbt::Blob {
 }
 
 impl MinecraftWrite for Slot {
-    fn minecraft_write(&self, writer: &mut dyn Write) -> Result<usize> {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         match self {
             Self::Nothing => false.minecraft_write(writer),
             Self::Item { id, count, nbt } => {
