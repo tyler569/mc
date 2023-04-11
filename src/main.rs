@@ -9,6 +9,7 @@ use winit::{
 mod camera;
 mod mesh;
 mod network;
+mod pipeline;
 mod state;
 mod texture;
 mod uniform;

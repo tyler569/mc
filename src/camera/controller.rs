@@ -78,6 +78,7 @@ impl CameraController {
                 self.is_mouse_pressed = is_pressed;
                 true
             }
+            WindowEvent::MouseWheel { .. } => false,
             WindowEvent::CursorMoved { position, .. } => {
                 if self.is_mouse_pressed {
                     if let Some(old_position) = self.last_mouse_position {
