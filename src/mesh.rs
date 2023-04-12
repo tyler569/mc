@@ -43,14 +43,14 @@ impl Mesh {
             0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 1., 0., 1., 1., 0., 1., 0., 0.,
         ], // Front
         [
-            1., 0., 0., 1., 1., 0., 1., 0., 1., 1., 1., 0., 1., 1., 1., 1., 0., 1.,
-        ], // Right
+            0., 0., 1., 0., 1., 1., 0., 0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0.,
+        ], // Left
         [
             1., 0., 1., 1., 1., 1., 0., 0., 1., 1., 1., 1., 0., 1., 1., 0., 0., 1.,
         ], // Back
         [
-            0., 0., 1., 0., 1., 1., 0., 0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0.,
-        ], // Left
+            1., 0., 0., 1., 1., 0., 1., 0., 1., 1., 1., 0., 1., 1., 1., 1., 0., 1.,
+        ], // Right
         [
             0., 1., 0., 0., 1., 1., 1., 1., 0., 0., 1., 1., 1., 1., 1., 1., 1., 0.,
         ], // Top
@@ -61,18 +61,18 @@ impl Mesh {
 
     const UV_OFFSETS: [[f32; 12]; 6] = [
         [1., 1., 1., 0., 0., 1., 1., 0., 0., 0., 0., 1.], // Front
-        [1., 1., 1., 0., 0., 1., 1., 0., 0., 0., 0., 1.], // Right
-        [1., 1., 1., 0., 0., 1., 1., 0., 0., 0., 0., 1.], // Back
         [1., 1., 1., 0., 0., 1., 1., 0., 0., 0., 0., 1.], // Left
+        [1., 1., 1., 0., 0., 1., 1., 0., 0., 0., 0., 1.], // Back
+        [1., 1., 1., 0., 0., 1., 1., 0., 0., 0., 0., 1.], // Right
         [1., 1., 1., 0., 0., 1., 1., 0., 0., 0., 0., 1.], // Top
         [1., 1., 0., 1., 1., 0., 1., 0., 0., 1., 0., 0.], // Bottom
     ];
 
     const NORMALS: [[f32; 3]; 6] = [
         [-1., 0., 0.], // Front
+        [0., 0., 1.],  // Left
         [1., 0., 0.],  // Back
         [0., 0., -1.], // Right
-        [0., 0., 1.],  // Left
         [0., 1., 0.],  // Top
         [0., -1., 0.], // Bottom
     ];
@@ -133,6 +133,7 @@ impl Mesh {
                 }
             }
         }
+        chunk.remove(&(8, 4, 8));
         chunk.insert((4, 8, 4), 10);
         chunk.insert((4, 9, 4), 10);
 
@@ -145,16 +146,16 @@ impl Mesh {
                     let block = get(x, y, z);
 
                     if block != 0 && (x - 1 < 0 || get(x - 1, y, z) == 0) {
-                        mesh.emit_face(Face::West, to_f(x, y, z), block)
-                    }
-                    if block != 0 && (x + 1 > 15 || get(x + 1, y, z) == 0) {
                         mesh.emit_face(Face::East, to_f(x, y, z), block)
                     }
+                    if block != 0 && (x + 1 > 15 || get(x + 1, y, z) == 0) {
+                        mesh.emit_face(Face::West, to_f(x, y, z), block)
+                    }
                     if block != 0 && (z - 1 < 0 || get(x, y, z - 1) == 0) {
-                        mesh.emit_face(Face::South, to_f(x, y, z), block)
+                        mesh.emit_face(Face::North, to_f(x, y, z), block)
                     }
                     if block != 0 && (z + 1 > 15 || get(x, y, z + 1) == 0) {
-                        mesh.emit_face(Face::North, to_f(x, y, z), block)
+                        mesh.emit_face(Face::South, to_f(x, y, z), block)
                     }
                     if block != 0 && (y - 1 < 0 || get(x, y - 1, z) == 0) {
                         mesh.emit_face(Face::Down, to_f(x, y, z), block)
