@@ -1,68 +1,103 @@
 use crate::network::varint::{VarInt, VarLong};
 use crate::network::{Angle, Chat, Identifier, Nbt, Slot};
+use anyhow::Result;
 use std::f32::consts::PI;
-use std::io::{Result, Write};
+use std::io::{Read, Write};
 use uuid::Uuid;
 
 use super::Position;
 
-pub trait MinecraftWrite {
+pub trait MinecraftIo {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize>;
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self>
+    where
+        Self: Sized;
 }
 
-macro_rules! impl_minecraft_write {
+macro_rules! impl_minecraft_io {
     ($($typ:ty),*) => {
         $(
-            impl MinecraftWrite for $typ {
+            impl MinecraftIo for $typ {
                 fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
-                    writer.write(&self.to_be_bytes())
+                    Ok(writer.write(&self.to_be_bytes())?)
+                }
+
+                fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+                    let buffer = &mut [0u8; std::mem::size_of::<Self>()];
+                    reader.read(buffer)?;
+                    Ok(<Self>::from_be_bytes(*buffer))
                 }
             }
         )*
     };
 }
 
-impl_minecraft_write!(i8, i16, i32, i64, u8, u16, u32, u64, u128, f32, f64);
+impl_minecraft_io!(i8, i16, i32, i64, u8, u16, u32, u64, u128, f32, f64);
 
-impl MinecraftWrite for bool {
+impl MinecraftIo for bool {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
-        writer.write(&[*self as u8])
+        Ok(writer.write(&[*self as u8])?)
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        Ok(<u8>::minecraft_read(reader)? != 0)
     }
 }
 
-impl MinecraftWrite for VarInt {
-    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
-        self.write(writer)
-    }
-}
-
-impl MinecraftWrite for VarLong {
+impl MinecraftIo for VarInt {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.write(writer)
     }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
+    }
 }
 
-impl MinecraftWrite for String {
+impl MinecraftIo for VarLong {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
+        Ok(self.write(writer)?)
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
+    }
+}
+
+impl MinecraftIo for String {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.as_str().minecraft_write(writer)
     }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
+    }
 }
 
-impl MinecraftWrite for &str {
+impl MinecraftIo for &str {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let len = self.len() as i32;
         let mut size = VarInt(len).minecraft_write(writer)?;
         size += writer.write(self.as_bytes())?;
         Ok(size)
     }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
+    }
 }
 
-impl MinecraftWrite for Position {
+impl MinecraftIo for Position {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let value: u64 = ((self.x & 0x3FFFFFF) as u64) << 38
             | ((self.z & 0x3FFFFFF) as u64) << 12
             | (self.y & 0xFFF) as u64;
         value.minecraft_write(writer)
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
     }
 }
 
@@ -74,7 +109,7 @@ impl MinecraftWrite for Position {
 //     }
 // }
 
-impl<T: MinecraftWrite> MinecraftWrite for &[T] {
+impl<T: MinecraftIo> MinecraftIo for &[T] {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let mut size = 0;
         for v in *self {
@@ -82,9 +117,13 @@ impl<T: MinecraftWrite> MinecraftWrite for &[T] {
         }
         Ok(size)
     }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
+    }
 }
 
-impl<T: MinecraftWrite> MinecraftWrite for Option<T> {
+impl<T: MinecraftIo> MinecraftIo for Option<T> {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         if self.is_some() {
             self.as_ref().unwrap().minecraft_write(writer)
@@ -92,51 +131,79 @@ impl<T: MinecraftWrite> MinecraftWrite for Option<T> {
             Ok(0)
         }
     }
-}
 
-impl MinecraftWrite for Chat {
-    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
-        self.0.as_str().minecraft_write(writer)
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
     }
 }
 
-impl MinecraftWrite for Identifier {
+impl MinecraftIo for Chat {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.0.as_str().minecraft_write(writer)
     }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
+    }
 }
 
-impl MinecraftWrite for Angle {
+impl MinecraftIo for Identifier {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
+        self.0.as_str().minecraft_write(writer)
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
+    }
+}
+
+impl MinecraftIo for Angle {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let protocol_angle: u8 = (self.0 / (2. * PI) * 256.) as u8;
         protocol_angle.minecraft_write(writer)
     }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
+    }
 }
 
-impl MinecraftWrite for Uuid {
+impl MinecraftIo for Uuid {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         self.as_u128().minecraft_write(writer)
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
     }
 }
 
 // Possibility: replace Nbt with nbt::Blob and impl this on that.
-impl MinecraftWrite for Nbt {
+impl MinecraftIo for Nbt {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let mut tmp = vec![];
         nbt::to_writer(&mut tmp, &self.0, None)?;
-        writer.write(&tmp)
+        Ok(writer.write(&tmp)?)
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
     }
 }
 
-impl MinecraftWrite for nbt::Blob {
+impl MinecraftIo for nbt::Blob {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         let mut tmp = vec![];
         nbt::to_writer(&mut tmp, self, None)?;
-        writer.write(&tmp)
+        Ok(writer.write(&tmp)?)
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
     }
 }
 
-impl MinecraftWrite for Slot {
+impl MinecraftIo for Slot {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<usize> {
         match self {
             Self::Nothing => false.minecraft_write(writer),
@@ -152,6 +219,10 @@ impl MinecraftWrite for Slot {
                 Ok(size)
             }
         }
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        todo!()
     }
 }
 

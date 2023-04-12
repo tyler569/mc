@@ -1,4 +1,7 @@
-use std::io::{Read, Result, Write};
+use anyhow::Result;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::io::{Read, Write};
 
 const SEGMENT_BITS: u32 = 0x7f;
 const CONTINUE_BIT: u8 = 0x80;
@@ -6,13 +9,74 @@ const CONTINUE_BIT: u8 = 0x80;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VarInt(pub i32);
 
+#[derive(Copy, Clone, Debug)]
+pub enum VarIntError {
+    NotEnoughBytes,
+    TooManyBytes,
+}
+
+impl Display for VarIntError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for VarIntError {}
+
+fn read_one(reader: &mut impl Read) -> Option<u8> {
+    let v = &mut [0u8];
+    reader.read(v).ok()?;
+    Some(v[0])
+}
+
 impl VarInt {
-    pub fn write(self, writer: &mut dyn Write) -> Result<usize> {
+    pub fn write(self, writer: &mut impl Write) -> Result<usize> {
         let mut buffer = [0u8; 6];
         let mut index = 0;
         let mut value = self.0 as u32;
         loop {
             if value & !SEGMENT_BITS == 0 {
+                buffer[index] = value as u8;
+                index += 1;
+                return Ok(writer.write(&buffer[0..index])?);
+            }
+
+            buffer[index] = value as u8 | CONTINUE_BIT;
+            index += 1;
+            value >>= 7;
+        }
+    }
+
+    pub fn read(reader: &mut impl Read) -> Result<Self> {
+        let mut value: u32 = 0;
+        let mut position = 0;
+        let mut current_byte = 0;
+        loop {
+            current_byte = read_one(reader).ok_or(VarIntError::NotEnoughBytes)?;
+            value |= (current_byte as u32 & SEGMENT_BITS) << position;
+
+            if current_byte & CONTINUE_BIT == 0 {
+                break;
+            }
+            position += 7;
+            if position > 32 {
+                Err(VarIntError::TooManyBytes)?;
+            }
+        }
+        Ok(Self(value as i32))
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VarLong(pub i64);
+
+impl VarLong {
+    pub fn write(self, writer: &mut dyn Write) -> std::io::Result<usize> {
+        let mut buffer = [0u8; 10];
+        let mut index = 0;
+        let mut value = self.0 as u64;
+        loop {
+            if value & !(SEGMENT_BITS as u64) == 0 {
                 buffer[index] = value as u8;
                 index += 1;
                 return writer.write(&buffer[0..index]);
@@ -22,6 +86,25 @@ impl VarInt {
             index += 1;
             value >>= 7;
         }
+    }
+
+    pub fn read(reader: &mut impl Read) -> Result<Self> {
+        let mut value: u64 = 0;
+        let mut position = 0;
+        let mut current_byte = 0;
+        loop {
+            current_byte = read_one(reader).ok_or(VarIntError::NotEnoughBytes)?;
+            value |= (current_byte as u64 & SEGMENT_BITS as u64) << position;
+
+            if current_byte & CONTINUE_BIT == 0 {
+                break;
+            }
+            position += 7;
+            if position > 32 {
+                Err(VarIntError::TooManyBytes)?;
+            }
+        }
+        Ok(Self(value as i64))
     }
 }
 
@@ -42,6 +125,7 @@ mod tests {
     ];
 
     use super::*;
+    use std::io::Cursor;
 
     #[test]
     fn test_varint_encode() {
@@ -50,6 +134,16 @@ mod tests {
             VarInt(number).write(&mut vec);
             assert_eq!(vec, bytes);
             vec.clear();
+        }
+    }
+
+    #[test]
+    fn test_varint_decode() {
+        for &(number, bytes) in VARINT_CONVERSIONS {
+            let mut vec = Vec::from(bytes);
+            let mut reader = Cursor::new(vec);
+            let varint_value = VarInt::read(&mut reader).unwrap();
+            assert_eq!(number, varint_value.0);
         }
     }
 
@@ -85,28 +179,6 @@ mod tests {
             VarLong(number).write(&mut vec);
             assert_eq!(vec, bytes);
             vec.clear();
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct VarLong(pub i64);
-
-impl VarLong {
-    pub fn write(self, writer: &mut dyn Write) -> std::io::Result<usize> {
-        let mut buffer = [0u8; 10];
-        let mut index = 0;
-        let mut value = self.0 as u64;
-        loop {
-            if value & !(SEGMENT_BITS as u64) == 0 {
-                buffer[index] = value as u8;
-                index += 1;
-                return writer.write(&buffer[0..index]);
-            }
-
-            buffer[index] = value as u8 | CONTINUE_BIT;
-            index += 1;
-            value >>= 7;
         }
     }
 }

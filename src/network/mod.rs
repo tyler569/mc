@@ -1,6 +1,8 @@
 use uuid::Uuid;
 
-mod packet;
+mod connection;
+mod protocol;
+mod read_write;
 mod varint;
 
 pub use varint::{VarInt, VarLong};
