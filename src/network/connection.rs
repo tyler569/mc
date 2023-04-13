@@ -1,8 +1,8 @@
 use crate::network::{ServerBoundHandshakePacket, VarInt};
 use std::net::TcpStream;
 
-fn connect_to_server(address: &str, port: u16) -> anyhow::Result<()> {
-    let stream = TcpStream::connect((address, port))?;
+pub fn connect_to_server(address: &str, port: u16) -> anyhow::Result<()> {
+    // let stream = TcpStream::connect((address, port))?;
 
     let packet = ServerBoundHandshakePacket::Handshake(super::serverbound::handshake::Handshake {
         protocol_version: VarInt(758),
@@ -11,7 +11,11 @@ fn connect_to_server(address: &str, port: u16) -> anyhow::Result<()> {
         next_state: VarInt(1),
     });
 
-    let buffer: Vec<u8> = vec![];
+    let mut buffer: Vec<u8> = vec![];
+
+    packet.write(&mut buffer);
+
+    println!("{:x?}", buffer);
 
     Ok(())
 }

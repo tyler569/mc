@@ -1,5 +1,5 @@
 use crate::network::varint::{VarInt, VarLong};
-use crate::network::{Angle, Chat, Identifier, Nbt, ProtocolArray, Slot};
+use crate::network::{Angle, Chat, Identifier, Nbt, Slot};
 use anyhow::Result;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::f32::consts::PI;
@@ -63,6 +63,16 @@ impl MinecraftIo for i8 {
 
     fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
         Ok(reader.read_i8()?)
+    }
+}
+
+impl MinecraftIo for () {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<()> {
+        Ok(())
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        Ok(())
     }
 }
 
@@ -171,7 +181,7 @@ impl MinecraftIo for Chat {
     }
 
     fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
-        todo!()
+        Ok(Self(<String>::minecraft_read(reader)?))
     }
 }
 
@@ -181,7 +191,7 @@ impl MinecraftIo for Identifier {
     }
 
     fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
-        todo!()
+        Ok(Self(<String>::minecraft_read(reader)?))
     }
 }
 
@@ -192,7 +202,8 @@ impl MinecraftIo for Angle {
     }
 
     fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
-        todo!()
+        let protocol_angle = reader.read_u8()?;
+        Ok(Self(protocol_angle as f32 / 256. * 2. * PI))
     }
 }
 
@@ -202,7 +213,7 @@ impl MinecraftIo for Uuid {
     }
 
     fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
-        todo!()
+        Ok(Uuid::from_u128(reader.read_u128::<BigEndian>()?))
     }
 }
 
@@ -260,6 +271,38 @@ impl MinecraftIo for Slot {
         Ok(Self::Item { id, count, nbt })
     }
 }
+
+macro_rules! tuple_impls {
+    ( $( $name:ident )+ ) => {
+        #[allow(non_snake_case)]
+        impl<$($name:MinecraftIo),+> MinecraftIo for ($($name,)+) {
+            fn minecraft_write(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
+                let ($($name,)+) = self;
+                $( $name.minecraft_write(writer)?; )+
+                Ok(())
+            }
+
+            fn minecraft_read(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                Ok((
+                    $( $name::minecraft_read(reader)?, )*
+                ))
+            }
+        }
+    };
+}
+
+tuple_impls! { A }
+tuple_impls! { A B }
+tuple_impls! { A B C }
+tuple_impls! { A B C D }
+tuple_impls! { A B C D E }
+tuple_impls! { A B C D E F }
+tuple_impls! { A B C D E F G }
+tuple_impls! { A B C D E F G H }
+tuple_impls! { A B C D E F G H I }
+tuple_impls! { A B C D E F G H I J }
+tuple_impls! { A B C D E F G H I J K }
+tuple_impls! { A B C D E F G H I J K L }
 
 #[cfg(test)]
 mod tests {

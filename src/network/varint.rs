@@ -6,7 +6,7 @@ use std::io::{Read, Write};
 const SEGMENT_BITS: u32 = 0x7f;
 const CONTINUE_BIT: u8 = 0x80;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VarInt(pub i32);
 
 #[derive(Copy, Clone, Debug)]
@@ -68,7 +68,7 @@ impl VarInt {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VarLong(pub i64);
 
 impl VarLong {

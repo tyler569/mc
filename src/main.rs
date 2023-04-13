@@ -16,6 +16,9 @@ mod uniform;
 mod vertex;
 
 fn main() {
+    network::connection::connect_to_server("localhost", 25565);
+    return;
+
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();

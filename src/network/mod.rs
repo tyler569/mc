@@ -1,26 +1,22 @@
 use uuid::Uuid;
 
-mod connection;
-// mod r#macro;
-mod protocol;
+pub mod connection;
 mod read_write;
 mod varint;
 
 use crate::network::read_write::MinecraftIo;
 pub use varint::{VarInt, VarLong};
 
-pub struct ProtocolArray<T: MinecraftIo> {
-    length: usize,
-    array: Vec<T>,
-}
-
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct Position {
     x: i32,
     y: i32,
     z: i32,
 }
 
+#[derive(Clone, Default, PartialEq)]
 pub enum Slot {
+    #[default]
     Nothing,
     Item {
         id: VarInt,
@@ -29,22 +25,43 @@ pub enum Slot {
     },
 }
 
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct Identifier(String);
-pub struct Chat(String);
-pub struct Angle(f32);
-pub struct Nbt(nbt::Blob);
-pub struct BitSet {}
-pub struct CommandNode {}
-pub struct Statistic {}
-pub enum Either<T, U> {
-    Left(T),
-    Right(U),
-}
 
+#[derive(Clone, Default, PartialEq, Eq)]
+pub struct Chat(String);
+
+#[derive(Copy, Clone, Default, PartialEq)]
+pub struct Angle(f32);
+
+#[derive(Clone, Default, PartialEq)]
+pub struct Nbt(nbt::Blob);
+
+pub type BitSet = ();
+pub type CommandNode = ();
+pub type Statistic = ();
+pub type EntityMetadata = ();
+pub type EntityProperty = ();
+pub type Recipe = ();
+pub type Tag = ();
+pub type BossBarAction = ();
+
+/*
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
+pub struct BitSet {}
+
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
+pub struct CommandNode {}
+
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
+pub struct Statistic {}
+
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct EntityMetadata {
     // complicated.
 }
 
+#[derive(Clone, Default, PartialEq)]
 pub struct EntityProperty {
     key: Identifier,
     value: f64,
@@ -52,14 +69,17 @@ pub struct EntityProperty {
     modifiers: Vec<()>, // TODO
 }
 
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct Recipe {
     // complicated
 }
 
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct Tag {
     // complicated
 }
 
+#[derive(Clone, Default, PartialEq)]
 pub enum BossBarAction {
     Add {
         title: String,
@@ -68,7 +88,8 @@ pub enum BossBarAction {
         division: VarInt,
         flags: u8,
     },
-    Remove {},
+    #[default]
+    Remove,
     UpdateHealth {
         health: f32,
     },
@@ -83,6 +104,7 @@ pub enum BossBarAction {
         flags: u8,
     },
 }
+ */
 
 macro_rules! define_packets {
     (
@@ -118,10 +140,28 @@ macro_rules! define_packets {
                         use super::*;
 
                         $(
+                            #[derive(Default)]
                             pub struct $packet_name {
                                 $(
                                     pub $field_name : $field_type
                                 ),*
+                            }
+
+                            impl $packet_name {
+                                fn write_to(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
+                                    $(
+                                        self.$field_name.minecraft_write(writer)?;
+                                    )*
+                                    Ok(())
+                                }
+
+                                fn read_from(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                                    let mut v: Self = Default::default();
+                                    $(
+                                        v.$field_name = <$field_type>::minecraft_read(reader)?;
+                                    )*
+                                    Ok(v)
+                                }
                             }
                         )*
                     }
@@ -484,7 +524,8 @@ define_packets! {
         SkulkVibrationSignal {
             source_position: Position,
             destination_identifier: Identifier,
-            destination: Either<Position, VarInt>,
+            destination_entity: Option<VarInt>,
+            destination_position: Option<Position>,
             arrival_ticks: VarInt,
         },
         EntityAnimation {
