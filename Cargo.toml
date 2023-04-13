@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.70"
 bytemuck = { version = "1.13.1", features = ["derive"] }
+byteorder = { version = "1.4.3", features = ["i128"] }
 cgmath = "0.18.0"
 env_logger = "0.10.0"
 hematite-nbt = "0.5.2"

@@ -30,7 +30,7 @@ fn read_one(reader: &mut impl Read) -> Option<u8> {
 }
 
 impl VarInt {
-    pub fn write(self, writer: &mut impl Write) -> Result<usize> {
+    pub fn write(self, writer: &mut impl Write) -> Result<()> {
         let mut buffer = [0u8; 6];
         let mut index = 0;
         let mut value = self.0 as u32;
@@ -38,7 +38,8 @@ impl VarInt {
             if value & !SEGMENT_BITS == 0 {
                 buffer[index] = value as u8;
                 index += 1;
-                return Ok(writer.write(&buffer[0..index])?);
+                writer.write(&buffer[0..index])?;
+                return Ok(());
             }
 
             buffer[index] = value as u8 | CONTINUE_BIT;
@@ -71,7 +72,7 @@ impl VarInt {
 pub struct VarLong(pub i64);
 
 impl VarLong {
-    pub fn write(self, writer: &mut dyn Write) -> std::io::Result<usize> {
+    pub fn write(self, writer: &mut dyn Write) -> Result<()> {
         let mut buffer = [0u8; 10];
         let mut index = 0;
         let mut value = self.0 as u64;
@@ -79,7 +80,8 @@ impl VarLong {
             if value & !(SEGMENT_BITS as u64) == 0 {
                 buffer[index] = value as u8;
                 index += 1;
-                return writer.write(&buffer[0..index]);
+                writer.write(&buffer[0..index])?;
+                return Ok(());
             }
 
             buffer[index] = value as u8 | CONTINUE_BIT;

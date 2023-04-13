@@ -6,8 +6,13 @@ mod protocol;
 mod read_write;
 mod varint;
 
-use crate::network::read_write::{MinecraftRead, MinecraftWrite};
+use crate::network::read_write::MinecraftIo;
 pub use varint::{VarInt, VarLong};
+
+pub struct ProtocolArray<T: MinecraftIo> {
+    length: usize,
+    array: Vec<T>,
+}
 
 pub struct Position {
     x: i32,
