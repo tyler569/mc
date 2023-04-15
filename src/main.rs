@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use cgmath::Vector3;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -7,6 +8,7 @@ use winit::{
 };
 
 mod camera;
+mod cuboid;
 mod mesh;
 mod network;
 mod pipeline;
@@ -16,8 +18,8 @@ mod uniform;
 mod vertex;
 
 fn main() {
-    network::connection::connect_to_server("localhost", 25565);
-    return;
+    // network::connection::connect_to_server("localhost", 25565);
+    // return;
 
     env_logger::init();
     let event_loop = EventLoop::new();

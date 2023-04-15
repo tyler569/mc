@@ -1,4 +1,5 @@
-use cgmath::SquareMatrix;
+use crate::cuboid::Cuboid;
+use cgmath::{SquareMatrix, Vector3};
 use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 
@@ -6,10 +7,10 @@ use crate::vertex_struct;
 
 vertex_struct! {
     pub struct Vertex {
-        position: [f32; 3],
-        normal: [f32; 3],
-        uv: [f32; 2],
-        texture_index: f32,
+        pub position: [f32; 3],
+        pub normal: [f32; 3],
+        pub uv: [f32; 2],
+        pub texture_index: f32,
     }
 }
 
@@ -27,6 +28,70 @@ pub enum Face {
     West,
     Up,
     Down,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Dimension {
+    X,
+    Y,
+    Z,
+}
+
+impl Face {
+    pub fn into_vec3(self) -> Vector3<f32> {
+        match self {
+            Self::North => Vector3 {
+                x: 0.,
+                y: 0.,
+                z: -1.,
+            },
+            Self::South => Vector3 {
+                x: 0.,
+                y: 0.,
+                z: 1.,
+            },
+            Self::West => Vector3 {
+                x: 1.,
+                y: 0.,
+                z: 0.,
+            },
+            Self::East => Vector3 {
+                x: -1.,
+                y: 0.,
+                z: 0.,
+            },
+            Self::Up => Vector3 {
+                x: 0.,
+                y: 1.,
+                z: 0.,
+            },
+            Self::Down => Vector3 {
+                x: 0.,
+                y: -1.,
+                z: 0.,
+            },
+        }
+    }
+
+    pub fn dimension(self) -> Dimension {
+        match self {
+            Face::North | Face::South => Dimension::Z,
+            Face::East | Face::West => Dimension::X,
+            Face::Up | Face::Down => Dimension::Y,
+        }
+    }
+
+    pub fn all() -> impl Iterator<Item = Self> {
+        [
+            Self::South,
+            Self::West,
+            Self::North,
+            Self::East,
+            Self::Up,
+            Self::Down,
+        ]
+        .into_iter()
+    }
 }
 
 impl Mesh {
@@ -166,6 +231,44 @@ impl Mesh {
                 }
             }
         }
+
+        mesh
+    }
+
+    pub fn cuboid_test() -> Self {
+        let mut mesh = Self::new();
+        let base_cuboid = Cuboid {
+            p1: Vector3::new(0.0, 0.0, 0.0),
+            p2: Vector3::new(1.0, 0.5, 1.0),
+        };
+        let top_cuboid = Cuboid {
+            p1: Vector3::new(0.5, 0.5, 0.0),
+            p2: Vector3::new(1.0, 1.0, 1.0),
+        };
+
+        mesh.vertices
+            .extend_from_slice(&base_cuboid.face(Face::Down, &[0., 0., 1., 1.]));
+        mesh.vertices
+            .extend_from_slice(&base_cuboid.face(Face::Up, &[0., 0., 1., 1.]));
+        mesh.vertices
+            .extend_from_slice(&base_cuboid.face(Face::North, &[0., 0.5, 1., 1.]));
+        mesh.vertices
+            .extend_from_slice(&base_cuboid.face(Face::South, &[0., 0.5, 1., 1.]));
+        mesh.vertices
+            .extend_from_slice(&base_cuboid.face(Face::West, &[0., 0.5, 1., 1.]));
+        mesh.vertices
+            .extend_from_slice(&base_cuboid.face(Face::East, &[0., 0.5, 1., 1.]));
+
+        mesh.vertices
+            .extend_from_slice(&top_cuboid.face(Face::Up, &[0.5, 0., 1., 1.]));
+        mesh.vertices
+            .extend_from_slice(&top_cuboid.face(Face::North, &[0., 0., 0.5, 0.5]));
+        mesh.vertices
+            .extend_from_slice(&top_cuboid.face(Face::South, &[0.5, 0., 1., 0.5]));
+        mesh.vertices
+            .extend_from_slice(&top_cuboid.face(Face::West, &[0., 0., 1., 0.5]));
+        mesh.vertices
+            .extend_from_slice(&top_cuboid.face(Face::East, &[0., 0., 1., 0.5]));
 
         mesh
     }

@@ -1,174 +1,21 @@
 use uuid::Uuid;
+use std::io::{Read, Write};
 
 pub mod connection;
 mod read_write;
 mod varint;
+mod types;
+#[macro_use]
+mod define_packets;
 
 use crate::network::read_write::MinecraftIo;
 pub use varint::{VarInt, VarLong};
+pub use types::*;
 
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct Position {
-    x: i32,
-    y: i32,
-    z: i32,
-}
+pub trait PacketIo where Self: Sized {
+    fn packet_write(&self, writer: &mut impl Write) -> anyhow::Result<()>;
 
-#[derive(Clone, Default, PartialEq)]
-pub enum Slot {
-    #[default]
-    Nothing,
-    Item {
-        id: VarInt,
-        count: i8,
-        nbt: Option<nbt::Blob>,
-    },
-}
-
-#[derive(Clone, Default, PartialEq, Eq)]
-pub struct Identifier(String);
-
-#[derive(Clone, Default, PartialEq, Eq)]
-pub struct Chat(String);
-
-#[derive(Copy, Clone, Default, PartialEq)]
-pub struct Angle(f32);
-
-#[derive(Clone, Default, PartialEq)]
-pub struct Nbt(nbt::Blob);
-
-pub type BitSet = ();
-pub type CommandNode = ();
-pub type Statistic = ();
-pub type EntityMetadata = ();
-pub type EntityProperty = ();
-pub type Recipe = ();
-pub type Tag = ();
-pub type BossBarAction = ();
-
-/*
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct BitSet {}
-
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct CommandNode {}
-
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct Statistic {}
-
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct EntityMetadata {
-    // complicated.
-}
-
-#[derive(Clone, Default, PartialEq)]
-pub struct EntityProperty {
-    key: Identifier,
-    value: f64,
-    modifier_count: VarInt,
-    modifiers: Vec<()>, // TODO
-}
-
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct Recipe {
-    // complicated
-}
-
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct Tag {
-    // complicated
-}
-
-#[derive(Clone, Default, PartialEq)]
-pub enum BossBarAction {
-    Add {
-        title: String,
-        health: f32,
-        color: VarInt,
-        division: VarInt,
-        flags: u8,
-    },
-    #[default]
-    Remove,
-    UpdateHealth {
-        health: f32,
-    },
-    UpdateTitle {
-        title: String,
-    },
-    UpdateStyle {
-        color: VarInt,
-        dividers: VarInt,
-    },
-    UpdateFlags {
-        flags: u8,
-    },
-}
- */
-
-macro_rules! define_packets {
-    (
-        $(
-            $(pub)? mod $direction:ident {
-                $(
-                    enum $packet_type:ident : $mode:ident {
-                        $(
-                            $packet_name:ident {
-                                $(
-                                    $field_name:ident : $field_type:ty
-                                ),* $(,)?
-                            }
-                        ),* $(,)?
-                    }
-                )*
-            }
-        )*
-    ) => {
-        $(
-            $(
-                enum $packet_type {
-                    $( $packet_name($direction::$mode::$packet_name) ),*
-                }
-            )*
-        )*
-
-        $(
-            pub mod $direction {
-                use super::*;
-                $(
-                    pub mod $mode {
-                        use super::*;
-
-                        $(
-                            #[derive(Default)]
-                            pub struct $packet_name {
-                                $(
-                                    pub $field_name : $field_type
-                                ),*
-                            }
-
-                            impl $packet_name {
-                                fn write_to(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
-                                    $(
-                                        self.$field_name.minecraft_write(writer)?;
-                                    )*
-                                    Ok(())
-                                }
-
-                                fn read_from(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
-                                    let mut v: Self = Default::default();
-                                    $(
-                                        v.$field_name = <$field_type>::minecraft_read(reader)?;
-                                    )*
-                                    Ok(v)
-                                }
-                            }
-                        )*
-                    }
-                )*
-            }
-        )*
-    }
+    fn packet_read(&self, reader: &mut impl Read) -> anyhow::Result<Self>;
 }
 
 define_packets! {

@@ -101,7 +101,8 @@ impl State {
         );
 
         let depth_texture = Texture::new_depth(&device, &config);
-        let mut mesh = Mesh::default();
+        // let mut mesh = Mesh::default();
+        let mut mesh = Mesh::cuboid_test();
         mesh.build(&device);
 
         Self {
