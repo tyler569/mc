@@ -34,9 +34,9 @@ var s_diffuse: sampler;
 
 @fragment
 fn fragment_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let sample_u = floor(in.texture_index / 16.) / 16.;
-    let sample_v = floor(in.texture_index % 16.) / 16.;
-    let sample = textureSample(t_diffuse, s_diffuse, vec2<f32>(in.uv.x / 16. + sample_u, in.uv.y / 16. + sample_v));
+    let sample_u = floor(in.texture_index % 16.) / 16. + in.uv.x / 16.;
+    let sample_v = floor(in.texture_index / 16.) / 16. + in.uv.y / 16.;
+    let sample = textureSample(t_diffuse, s_diffuse, vec2<f32>(sample_u, sample_v));
     var darken: f32 = 1.;
     if (in.normal.y < 0.) { darken = 0.6; }
     if (in.normal.x != 0.) { darken = 0.8; }

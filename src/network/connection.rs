@@ -1,5 +1,5 @@
-use std::io::{Read, Write, BufReader, BufWriter};
-use crate::network::{ServerBoundHandshakePacket, VarInt};
+use crate::network::{packets, Packet, VarInt};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::net::TcpStream;
 use winit::event::VirtualKeyCode::S;
 
@@ -40,7 +40,7 @@ pub fn connect_to_server(address: &str, port: u16) -> anyhow::Result<()> {
 }
 
 pub fn test_handshake(address: &str, port: u16) {
-    let packet = ServerBoundHandshakePacket::Handshake(super::serverbound::handshake::Handshake {
+    let packet = Packet::Handshake(packets::Handshake {
         protocol_version: VarInt(758),
         server_address: address.to_owned(),
         server_port: port,
@@ -48,7 +48,7 @@ pub fn test_handshake(address: &str, port: u16) {
     });
 
     let mut buffer: Vec<u8> = vec![];
-    packet.write(&mut buffer);
+    // packet.write_to(&mut buffer);
     println!("{:x?}", buffer);
 }
 

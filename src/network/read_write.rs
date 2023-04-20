@@ -1,4 +1,4 @@
-
+use super::Position;
 use crate::network::varint::{VarInt, VarLong};
 use crate::network::{Angle, Chat, Identifier, Nbt, Slot};
 use anyhow::Result;
@@ -6,7 +6,6 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::f32::consts::PI;
 use std::io::{Read, Write};
 use uuid::Uuid;
-use super::Position;
 
 #[cfg(test)]
 mod tests;

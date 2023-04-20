@@ -1,13 +1,13 @@
 use super::{VarInt, VarLong};
 
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
     pub z: i32,
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub enum Slot {
     #[default]
     Nothing,
@@ -18,16 +18,16 @@ pub enum Slot {
     },
 }
 
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Identifier(pub String);
 
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Chat(pub String);
 
-#[derive(Copy, Clone, Default, PartialEq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct Angle(pub f32);
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct Nbt(pub nbt::Blob);
 
 pub type BitSet = ();
@@ -40,21 +40,21 @@ pub type Tag = ();
 pub type BossBarAction = ();
 
 /*
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct BitSet {}
 
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct CommandNode {}
 
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Statistic {}
 
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct EntityMetadata {
     // complicated.
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct EntityProperty {
     key: Identifier,
     value: f64,
@@ -62,17 +62,17 @@ pub struct EntityProperty {
     modifiers: Vec<()>, // TODO
 }
 
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Recipe {
     // complicated
 }
 
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Tag {
     // complicated
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub enum BossBarAction {
     Add {
         title: String,

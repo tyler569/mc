@@ -60,7 +60,7 @@ impl Cuboid {
             Face::West => self.p2.x,
         };
 
-        triangles.map(|tri| {
+        let vertices = triangles.map(|tri| {
             let point = point_demux(dim, constant_value, [self.p1, self.p2], tri);
             Vertex {
                 position: point.into(),
@@ -68,6 +68,8 @@ impl Cuboid {
                 normal: dir.into_vec3().into(),
                 texture_index: 2.,
             }
-        })
+        });
+        println!("{dir:?} {vertices:?}");
+        vertices
     }
 }

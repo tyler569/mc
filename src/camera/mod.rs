@@ -4,6 +4,7 @@ use once_cell::sync::OnceCell;
 use std::iter::Once;
 use wgpu::SurfaceConfiguration;
 
+mod camera2;
 mod controller;
 
 struct CameraView {
@@ -34,9 +35,9 @@ impl Camera {
         Self {
             camera_view: CameraView {
                 // +z is out of the screen
-                eye: (0.0, 0.0, 5.0).into(),
+                eye: (0.0, 0.0, -5.0).into(),
                 // have it look at the origin
-                dir: -cgmath::Vector3::unit_z(),
+                dir: cgmath::Vector3::unit_z(),
                 // which way is "up"
                 up: cgmath::Vector3::unit_y(),
                 fovy: 45.0,

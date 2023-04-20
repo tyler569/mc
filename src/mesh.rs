@@ -20,7 +20,7 @@ pub struct Mesh {
     buffer: Option<wgpu::Buffer>,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Face {
     North,
     East,
@@ -30,7 +30,7 @@ pub enum Face {
     Down,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Dimension {
     X,
     Y,
@@ -236,6 +236,21 @@ impl Mesh {
     }
 
     pub fn cuboid_test() -> Self {
+        let mut mesh = Self::new();
+        let cuboid = Cuboid {
+            p1: Vector3::new(0., 0., 0.),
+            p2: Vector3::new(1., 1., 1.),
+        };
+
+        for face in Face::all() {
+            mesh.vertices
+                .extend_from_slice(&cuboid.face(face, &[0., 0., 1., 1.]));
+        }
+
+        mesh
+    }
+
+    pub fn cuboid_stairs_test() -> Self {
         let mut mesh = Self::new();
         let base_cuboid = Cuboid {
             p1: Vector3::new(0.0, 0.0, 0.0),
