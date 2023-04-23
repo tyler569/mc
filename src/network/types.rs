@@ -1,4 +1,6 @@
 use super::{VarInt, VarLong};
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Position {
@@ -21,8 +23,20 @@ pub enum Slot {
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Identifier(pub String);
 
+impl PartialEq<&'_ str> for Identifier {
+    fn eq(&self, other: &&'_ str) -> bool {
+        &self.0 == other
+    }
+}
+
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Chat(pub String);
+
+impl PartialEq<&'_ str> for Chat {
+    fn eq(&self, other: &&'_ str) -> bool {
+        &self.0 == other
+    }
+}
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct Angle(pub f32);
@@ -38,6 +52,78 @@ pub type EntityProperty = ();
 pub type Recipe = ();
 pub type Tag = ();
 pub type BossBarAction = ();
+
+pub trait Index {
+    fn into_index(self) -> usize;
+    fn to_value(index: usize) -> Self;
+}
+
+impl Index for VarInt {
+    fn into_index(self) -> usize {
+        self.0 as usize
+    }
+
+    fn to_value(index: usize) -> Self {
+        Self(index as i32)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct LengthPrefixedArray<T: Index, U> {
+    pub value: Vec<U>,
+    _index: PhantomData<T>,
+}
+
+impl<T: Index, U> LengthPrefixedArray<T, U> {
+    pub fn from_vec(value: Vec<U>) -> Self {
+        Self {
+            value,
+            _index: PhantomData,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct LengthPrefixedByteArray<T: Index> {
+    pub value: Vec<u8>,
+    _index: PhantomData<T>,
+}
+
+impl<T: Index> LengthPrefixedByteArray<T> {
+    pub fn from_vec(value: Vec<u8>) -> Self {
+        Self {
+            value,
+            _index: PhantomData,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ByteArray(pub Vec<u8>);
+
+impl ByteArray {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn into_inner(self) -> Vec<u8> {
+        self.0
+    }
+}
+
+impl Deref for ByteArray {
+    type Target = Vec<u8>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ByteArray {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 /*
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]

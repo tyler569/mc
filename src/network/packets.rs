@@ -3,7 +3,7 @@ use crate::network::*;
 macro_rules! define_packets {
     (
         $($(#[$packet_meta:meta])? $packet_name:ident {
-            $($(#[$field_meta:meta])? $field_name:ident : $field_type:ty),* $(,)*
+            $($(#[$field_meta:meta])? $field_name:ident : $field_type:ty $(= when($field_cond:expr))?),* $(,)*
         }),* $(,)?
     ) => {
         pub enum Packet {
@@ -14,6 +14,26 @@ macro_rules! define_packets {
         $(#[$packet_meta])?
         pub struct $packet_name {
             $($(#[$field_meta])? pub $field_name : $field_type),*
+        }
+        impl $packet_name {
+            fn read_from(reader: &mut impl Read) -> anyhow::Result<Self> {
+                let mut result = Self::default();
+                $(
+                    if true $(&& ($field_cond as fn(&Self) -> bool)(&result))? {
+                        result.$field_name = <$field_type>::minecraft_read(reader)?;
+                    }
+                )*
+                Ok(result)
+            }
+
+            fn write_to(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+                $(
+                    if true $(&& ($field_cond as fn(&Self) -> bool)(self))? {
+                        self.$field_name.minecraft_write(writer)?;
+                    }
+                )*
+                Ok(())
+            }
         })*
     }
 }
@@ -39,8 +59,8 @@ define_packets! {
     },
     EncryptionRequest {
         server_id: String,
-        public_key: Vec<u8>,
-        verify_token: Vec<u8>,
+        public_key: LengthPrefixedByteArray<VarInt>,
+        verify_token: LengthPrefixedByteArray<VarInt>,
     },
     LoginSuccess {
         uuid: Uuid,
@@ -52,20 +72,20 @@ define_packets! {
     LoginPluginRequest {
         message_id: VarInt,
         channel: Identifier,
-        data: Vec<u8>,
+        data: ByteArray,
     },
     // serverbound login
     LoginStart {
         username: String,
     },
     EncryptionResponse {
-        shared_secret: Vec<u8>,
-        verify_token: Vec<u8>,
+        shared_secret: LengthPrefixedByteArray<VarInt>,
+        verify_token: LengthPrefixedByteArray<VarInt>,
     },
     LoginPluginResponse {
         message_id: VarInt,
         success: bool,
-        data: Vec<u8>,
+        data: ByteArray,
     },
     // clientbound play
     SpawnEntity {
@@ -105,9 +125,9 @@ define_packets! {
     SpawnPainting {
         entity_id: VarInt,
         entity_uuid: Uuid,
-        motive: VarInt, // painting ID (why motive?)
+        painting_id: VarInt,
         location: Position,
-        direction: u8, // enum
+        direction: i8, // enum
     },
     SpawnPlayer {
         entity_id: VarInt,
@@ -121,8 +141,8 @@ define_packets! {
     SkulkVibrationSignal {
         source_position: Position,
         destination_identifier: Identifier,
-        destination_entity: Option<VarInt>,
-        destination_position: Option<Position>,
+        destination_entity: Option<VarInt> = when(|s: &Self| s.destination_identifier == "entity"),
+        destination_position: Option<Position> = when(|s: &Self| s.destination_identifier == "block"),
         arrival_ticks: VarInt,
     },
     EntityAnimation {
@@ -130,7 +150,7 @@ define_packets! {
         animation: u8, // animation ID
     },
     Statistics {
-        statistics: Vec<Statistic>,
+        statistics: LengthPrefixedArray<VarInt, Statistic>,
     },
     AcknowlegePlayerDigging {
         location: Position,
@@ -160,7 +180,12 @@ define_packets! {
     },
     BossBar {
         uuid: Uuid,
-        action: BossBarAction,
+        action: VarInt,
+        title: Option<Chat> = when(|s| s.action == VarInt(0) || s.action == VarInt(3)),
+        health: Option<f32> = when(|s| s.action == VarInt(0) || s.action == VarInt(2)),
+        color: Option<VarInt> = when(|s| s.action == VarInt(0) || s.action == VarInt(4)),
+        division: Option<VarInt> = when(|s| s.action == VarInt(0) || s.action == VarInt(4)),
+        flags: Option<u8> = when(|s| s.action == VarInt(0) || s.action == VarInt(5)),
     },
     ServerDifficulty {
         difficulty: u8, // enum
@@ -178,9 +203,9 @@ define_packets! {
         id: VarInt,
         start: VarInt,
         length: VarInt,
-        count: VarInt,
-        matches: Vec<(String, bool, Option<String>)>,
+        matches: LengthPrefixedArray<VarInt, (String, bool, Option<String>)>, // TODO needs attention
     },
+    // audited through here
     DeclareCommands {
         nodes: Vec<CommandNode>,
         root_index: VarInt,

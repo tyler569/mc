@@ -2,7 +2,8 @@ use std::io::{Read, Write};
 use uuid::Uuid;
 
 pub mod connection;
-mod impl_packets;
+// mod impl_packets;
+// mod packet_description;
 pub mod packets;
 mod read_write;
 mod types;

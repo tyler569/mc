@@ -1,7 +1,11 @@
 use super::Position;
 use crate::network::varint::{VarInt, VarLong};
-use crate::network::{Angle, Chat, Identifier, Nbt, Slot};
+use crate::network::{
+    Angle, ByteArray, Chat, Identifier, Index, LengthPrefixedArray, LengthPrefixedByteArray, Nbt,
+    Slot,
+};
 use anyhow::Result;
+use bytemuck::pod_align_to;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::f32::consts::PI;
 use std::io::{Read, Write};
@@ -146,7 +150,6 @@ impl MinecraftIo for Position {
 
 impl<T: MinecraftIo> MinecraftIo for Vec<T> {
     fn minecraft_write(&self, writer: &mut impl Write) -> Result<()> {
-        VarInt(self.len() as i32).minecraft_write(writer)?;
         for value in self {
             value.minecraft_write(writer)?;
         }
@@ -154,12 +157,71 @@ impl<T: MinecraftIo> MinecraftIo for Vec<T> {
     }
 
     fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
-        let len = <VarInt>::minecraft_read(reader)?;
-        let mut vec = Vec::with_capacity(len.0 as usize);
-        for _ in 0..len.0 {
-            vec.push(<T>::minecraft_read(reader)?);
+        let mut vec = Vec::new();
+        while let Ok(value) = <T>::minecraft_read(reader) {
+            vec.push(value);
         }
         Ok(vec)
+    }
+}
+
+impl MinecraftIo for ByteArray {
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<()> {
+        writer.write(self)?;
+        Ok(())
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf)?;
+        return Ok(Self(buf));
+    }
+}
+
+impl<T, U> MinecraftIo for LengthPrefixedArray<T, U>
+where
+    T: MinecraftIo + Index,
+    U: MinecraftIo,
+{
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<()> {
+        let length = self.value.len();
+        let protocol_length = <T>::to_value(length);
+        protocol_length.minecraft_write(writer)?;
+        for v in self.value.iter() {
+            v.minecraft_write(writer)?;
+        }
+        Ok(())
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        let protocol_length = <T>::minecraft_read(reader)?;
+        let length = protocol_length.into_index();
+        let mut buf = Vec::with_capacity(length);
+        for _ in 0..length {
+            buf.push(<U>::minecraft_read(reader)?);
+        }
+        Ok(Self::from_vec(buf))
+    }
+}
+
+impl<T> MinecraftIo for LengthPrefixedByteArray<T>
+where
+    T: MinecraftIo + Index,
+{
+    fn minecraft_write(&self, writer: &mut impl Write) -> Result<()> {
+        let length = self.value.len();
+        let protocol_length = <T>::to_value(length);
+        protocol_length.minecraft_write(writer)?;
+        writer.write(&self.value)?;
+        Ok(())
+    }
+
+    fn minecraft_read(reader: &mut impl Read) -> Result<Self> {
+        let protocol_length = <T>::minecraft_read(reader)?;
+        let length = protocol_length.into_index();
+        let mut buf = vec![0; length];
+        reader.read(&mut buf);
+        Ok(Self::from_vec(buf))
     }
 }
 
