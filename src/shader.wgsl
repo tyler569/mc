@@ -17,13 +17,42 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex_main(vertex: VertexInput) -> VertexOutput {
+fn vertex_main(@location(0) vertex: u32) -> VertexOutput {
     var out: VertexOutput;
-    out.clip_position = camera * vec4<f32>(vertex.position, 1.);
-    out.uv = vertex.uv;
-    out.texture_index = vertex.texture_index;
+
+    let x = vertex & 0x3fu;
+    let y = (vertex >> 6u) & 0x3fu;
+    let z = (vertex >> 12u) & 0x3fu;
+    let normal = (vertex >> 18u) & 0x7u;
+    let uv = (vertex >> 21u) & 0x3u;
+    let texture_index = vertex >> 23u;
+
+    let clip_position = camera * vec4<f32>(f32(x), f32(y), f32(z), 1.);
+    var fuv: vec2<f32>;
+    switch (uv) {
+    case 0u: { fuv = vec2<f32>(0., 0.); }
+    case 1u: { fuv = vec2<f32>(0., 1.); }
+    case 2u: { fuv = vec2<f32>(1., 0.); }
+    case 3u: { fuv = vec2<f32>(1., 1.); }
+    default: { fuv = vec2<f32>(0., 0.); }
+    }
+
+    var fnormal: vec3<f32>;
+    switch (normal) {
+    case 0u: { fnormal = vec3<f32>(1., 0., 0.); }
+    case 1u: { fnormal = vec3<f32>(-1., 0., 0.); }
+    case 2u: { fnormal = vec3<f32>(0., 1., 0.); }
+    case 3u: { fnormal = vec3<f32>(0., -1., 0.); }
+    case 4u: { fnormal = vec3<f32>(0., 0., 1.); }
+    case 5u: { fnormal = vec3<f32>(0., 0., -1.); }
+    default: { fnormal = vec3<f32>(0., 0., 1.); }
+    }
+
+    out.clip_position = clip_position;
+    out.uv = fuv;
+    out.normal = fnormal;
+    out.texture_index = f32(texture_index);
     out.position = out.clip_position.xyz;
-    out.normal = vertex.normal;
     return out;
 }
 

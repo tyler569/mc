@@ -1,3 +1,4 @@
+use crate::chunk::Chunk;
 use crate::cuboid::Cuboid;
 use cgmath::{SquareMatrix, Vector3};
 use std::collections::HashMap;
@@ -14,8 +15,53 @@ vertex_struct! {
     }
 }
 
+vertex_struct! {
+    pub struct Vertex2 {
+        pub packed_data: u32,
+    }
+}
+
+impl Vertex2 {
+    pub fn from_vertex(vertex: Vertex) -> Self {
+        let px = vertex.position[0] as u32;
+        let py = (vertex.position[1] as u32) << 6;
+        let pz = (vertex.position[2] as u32) << 12;
+        let nml = if vertex.normal == [1.0, 0.0, 0.0] {
+            0u32
+        } else if vertex.normal == [-1., 0., 0.] {
+            1 << 18
+        } else if vertex.normal == [0., 1., 0.] {
+            2 << 18
+        } else if vertex.normal == [0., -1., 0.] {
+            3 << 18
+        } else if vertex.normal == [0., 0., 1.] {
+            4 << 18
+        } else if vertex.normal == [0., 0., -1.] {
+            5 << 18
+        } else {
+            panic!()
+        };
+        let uvl = if vertex.uv == [0., 0.] {
+            0u32
+        } else if vertex.uv == [0., 1.] {
+            1 << 21
+        } else if vertex.uv == [1., 0.] {
+            2 << 21
+        } else if vertex.uv == [1., 1.] {
+            3 << 21
+        } else {
+            panic!()
+        };
+        let ixl = (vertex.texture_index as u32) << 23;
+
+        Vertex2 {
+            packed_data: px | py | pz | nml | uvl | ixl,
+        }
+    }
+}
+
 pub struct Mesh {
-    vertices: Vec<Vertex>,
+    vertices: Vec<Vertex2>,
     position: cgmath::Matrix4<f32>,
     buffer: Option<wgpu::Buffer>,
 }
@@ -148,12 +194,12 @@ impl Mesh {
         let normal = &Self::NORMALS[face as usize];
 
         for (o, u) in offsets.chunks(3).zip(uvs.chunks(2)) {
-            self.vertices.push(Vertex {
+            self.vertices.push(Vertex2::from_vertex(Vertex {
                 position: [position.0 + o[0], position.1 + o[1], position.2 + o[2]],
                 uv: [u[0], u[1]],
                 normal: *normal,
                 texture_index: texture_index as f32,
-            })
+            }))
         }
     }
 
@@ -187,103 +233,37 @@ impl Mesh {
         mesh
     }
 
-    pub fn default() -> Self {
+    pub fn from_chunk(chunk: &Chunk) -> Self {
         let mut mesh = Self::new();
 
-        let mut chunk = HashMap::<(i32, i32, i32), u32>::new();
-        for x in 0..16 {
-            for y in 0..8 {
-                for z in 0..16 {
-                    chunk.insert((x, y, z), 1);
-                }
-            }
-        }
-        chunk.remove(&(8, 4, 8));
-        chunk.insert((4, 8, 4), 10);
-        chunk.insert((4, 9, 4), 10);
+        let to_f = |x: usize, y: usize, z: usize| (x as f32, y as f32, z as f32);
 
-        let to_f = |x: i32, y: i32, z: i32| (x as f32, y as f32, z as f32);
-        let mut get = |x: i32, y: i32, z: i32| *chunk.entry((x, y, z)).or_default();
+        for y in 0..Chunk::SIZE_Y {
+            for z in 0..Chunk::SIZE_Z {
+                for x in 0..Chunk::SIZE_X {
+                    let block = chunk.get(x, y, z);
 
-        for x in 0..16 {
-            for y in 0..16 {
-                for z in 0..16 {
-                    let block = get(x, y, z);
-
-                    if block != 0 && (x - 1 < 0 || get(x - 1, y, z) == 0) {
-                        mesh.emit_face(Face::East, to_f(x, y, z), block)
+                    if block != 0 && (x == 0 || chunk.get(x - 1, y, z) == 0) {
+                        mesh.emit_face(Face::East, to_f(x, y, z), block as u32)
                     }
-                    if block != 0 && (x + 1 > 15 || get(x + 1, y, z) == 0) {
-                        mesh.emit_face(Face::West, to_f(x, y, z), block)
+                    if block != 0 && (x + 1 > Chunk::SIZE_X - 1 || chunk.get(x + 1, y, z) == 0) {
+                        mesh.emit_face(Face::West, to_f(x, y, z), block as u32)
                     }
-                    if block != 0 && (z - 1 < 0 || get(x, y, z - 1) == 0) {
-                        mesh.emit_face(Face::North, to_f(x, y, z), block)
+                    if block != 0 && (z == 0 || chunk.get(x, y, z - 1) == 0) {
+                        mesh.emit_face(Face::North, to_f(x, y, z), block as u32)
                     }
-                    if block != 0 && (z + 1 > 15 || get(x, y, z + 1) == 0) {
-                        mesh.emit_face(Face::South, to_f(x, y, z), block)
+                    if block != 0 && (z + 1 > Chunk::SIZE_Z - 1 || chunk.get(x, y, z + 1) == 0) {
+                        mesh.emit_face(Face::South, to_f(x, y, z), block as u32)
                     }
-                    if block != 0 && (y - 1 < 0 || get(x, y - 1, z) == 0) {
-                        mesh.emit_face(Face::Down, to_f(x, y, z), block)
+                    if block != 0 && (y == 0 || chunk.get(x, y - 1, z) == 0) {
+                        mesh.emit_face(Face::Down, to_f(x, y, z), block as u32)
                     }
-                    if block != 0 && (y + 1 > 15 || get(x, y + 1, z) == 0) {
-                        mesh.emit_face(Face::Up, to_f(x, y, z), block)
+                    if block != 0 && (y + 1 > Chunk::SIZE_Y - 1 || chunk.get(x, y + 1, z) == 0) {
+                        mesh.emit_face(Face::Up, to_f(x, y, z), block as u32)
                     }
                 }
             }
         }
-
-        mesh
-    }
-
-    pub fn cuboid_test() -> Self {
-        let mut mesh = Self::new();
-        let cuboid = Cuboid {
-            p1: Vector3::new(0., 0., 0.),
-            p2: Vector3::new(1., 1., 1.),
-        };
-
-        for face in Face::all() {
-            mesh.vertices
-                .extend_from_slice(&cuboid.face(face, &[0., 0., 1., 1.]));
-        }
-
-        mesh
-    }
-
-    pub fn cuboid_stairs_test() -> Self {
-        let mut mesh = Self::new();
-        let base_cuboid = Cuboid {
-            p1: Vector3::new(0.0, 0.0, 0.0),
-            p2: Vector3::new(1.0, 0.5, 1.0),
-        };
-        let top_cuboid = Cuboid {
-            p1: Vector3::new(0.5, 0.5, 0.0),
-            p2: Vector3::new(1.0, 1.0, 1.0),
-        };
-
-        mesh.vertices
-            .extend_from_slice(&base_cuboid.face(Face::Down, &[0., 0., 1., 1.]));
-        mesh.vertices
-            .extend_from_slice(&base_cuboid.face(Face::Up, &[0., 0., 1., 1.]));
-        mesh.vertices
-            .extend_from_slice(&base_cuboid.face(Face::North, &[0., 0.5, 1., 1.]));
-        mesh.vertices
-            .extend_from_slice(&base_cuboid.face(Face::South, &[0., 0.5, 1., 1.]));
-        mesh.vertices
-            .extend_from_slice(&base_cuboid.face(Face::West, &[0., 0.5, 1., 1.]));
-        mesh.vertices
-            .extend_from_slice(&base_cuboid.face(Face::East, &[0., 0.5, 1., 1.]));
-
-        mesh.vertices
-            .extend_from_slice(&top_cuboid.face(Face::Up, &[0.5, 0., 1., 1.]));
-        mesh.vertices
-            .extend_from_slice(&top_cuboid.face(Face::North, &[0., 0., 0.5, 0.5]));
-        mesh.vertices
-            .extend_from_slice(&top_cuboid.face(Face::South, &[0.5, 0., 1., 0.5]));
-        mesh.vertices
-            .extend_from_slice(&top_cuboid.face(Face::West, &[0., 0., 1., 0.5]));
-        mesh.vertices
-            .extend_from_slice(&top_cuboid.face(Face::East, &[0., 0., 1., 0.5]));
 
         mesh
     }

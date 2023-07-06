@@ -10,7 +10,8 @@ use winit::{
 mod camera;
 mod cuboid;
 mod mesh;
-mod network;
+// mod network;
+mod chunk;
 mod pipeline;
 mod state;
 mod texture;
@@ -18,9 +19,6 @@ mod uniform;
 mod vertex;
 
 fn main() {
-    // network::connection::connect_to_server("localhost", 25565);
-    // return;
-
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
@@ -43,7 +41,7 @@ fn main() {
                                 ..
                             },
                         ..
-                    } => *control_flow = ControlFlow::Exit,
+                    } => control_flow.set_exit(),
                     WindowEvent::Resized(physical_size) => {
                         state.resize(*physical_size);
                     }

@@ -1,6 +1,7 @@
 use crate::camera::Camera;
 use crate::camera::CameraController;
-use crate::mesh::{DrawMesh, Mesh, Vertex};
+use crate::chunk::Chunk;
+use crate::mesh::{DrawMesh, Mesh, Vertex, Vertex2};
 use crate::texture::Texture;
 use crate::uniform::Uniform;
 use crate::vertex::VertexLayout;
@@ -96,14 +97,15 @@ impl State {
             &render_pipeline_layout,
             config.format,
             Some(Texture::DEPTH_FORMAT),
-            &[Vertex::layout()],
+            &[Vertex2::layout()],
             wgpu::include_wgsl!("shader.wgsl"),
         );
 
         let depth_texture = Texture::new_depth(&device, &config);
-        // let mut mesh = Mesh::default();
+        let chunk = Chunk::default();
+        let mut mesh = Mesh::from_chunk(&chunk);
         // let mut mesh = Mesh::cuboid_test();
-        let mut mesh = Mesh::texture_demo();
+        // let mut mesh = Mesh::texture_demo();
         mesh.build(&device);
 
         Self {
